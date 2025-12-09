@@ -41,7 +41,8 @@ app.use(bodyParser.json());
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://lawanalytics.app'
+    'https://lawanalytics.app',
+    'https://dashboard.lawanalytics.app'
 ];
 
 // Manejo de preflight OPTIONS explícito
