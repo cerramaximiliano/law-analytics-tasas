@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'law-analytics',
+      name: 'law-analytics-tasas',
       script: './app.js',
       instances: 1,
       exec_mode: 'fork',
