@@ -118,9 +118,9 @@ async function generateFolderStatusAnalytics(userId) {
         const uniqueStatuses = await foldersCollection.distinct('status', { userId: userId });
         logger.info(`Estados de carpeta encontrados para usuario ${userId}: ${JSON.stringify(uniqueStatuses)}`);
 
-        // 1. Obtener distribución de carpetas por estado
+        // 1. Obtener distribución de carpetas por estado (solo activas, no archivadas)
         const statusAggregation = await foldersCollection.aggregate([
-            { $match: { userId: userId } },
+            { $match: { userId: userId, archived: { $ne: true } } },
             {
                 $group: {
                     _id: '$status',
@@ -163,8 +163,8 @@ async function generateFolderStatusAnalytics(userId) {
             }
         };
 
-        // Obtener todas las carpetas
-        const folders = await foldersCollection.find({ userId: userId }).toArray();
+        // Obtener todas las carpetas activas (no archivadas)
+        const folders = await foldersCollection.find({ userId: userId, archived: { $ne: true } }).toArray();
 
         // Calcular tiempos promedio por estado
         if (folders.length > 0) {
@@ -316,9 +316,9 @@ async function generateFinancialAnalytics(userId) {
         const foldersCollection = mongoose.connection.collection(COLLECTIONS.folders);
         const calculatorsCollection = mongoose.connection.collection(COLLECTIONS.calculators);
 
-        // 1. Obtener montos totales y promedios de carpetas
+        // 1. Obtener montos totales y promedios de carpetas (solo activas, no archivadas)
         const folderAmounts = await foldersCollection.aggregate([
-            { $match: { userId: userId } },
+            { $match: { userId: userId, archived: { $ne: true } } },
             {
                 $group: {
                     _id: '$status',
@@ -374,9 +374,10 @@ async function generateFinancialAnalytics(userId) {
             ? Math.round(totalAmount / totalFolders)
             : 0;
 
-        // 2. Obtener estadísticas de calculadoras
+        // 2. Obtener estadísticas de calculadoras (solo activas, no archivadas)
+        // Nota: Se incluyen todos los tipos (calculado, ofertado, reclamado) para analíticas financieras completas
         const calculatorStats = await calculatorsCollection.aggregate([
-            { $match: { userId: userId } },
+            { $match: { userId: userId, archived: { $ne: true } } },
             {
                 $group: {
                     _id: { $toLower: '$type' },
@@ -725,9 +726,11 @@ async function generateTrendAnalytics(userId) {
         const tasksCollection = mongoose.connection.collection(COLLECTIONS.tasks);
 
         // Obtener todas las carpetas, movimientos, calculadoras y tareas de los últimos 6 meses
+        // Solo se incluyen recursos activos (no archivados) para consistencia con UserStats
         const [folders, movements, calculators, tasks] = await Promise.all([
             foldersCollection.find({
                 userId: userId,
+                archived: { $ne: true },
                 createdAt: { $gte: sixMonthsAgo.toDate() }
             }).toArray(),
             movementsCollection.find({
@@ -736,6 +739,7 @@ async function generateTrendAnalytics(userId) {
             }).toArray(),
             calculatorsCollection.find({
                 userId: userId,
+                archived: { $ne: true },
                 createdAt: { $gte: sixMonthsAgo.toDate() }
             }).toArray(),
             tasksCollection.find({
@@ -834,8 +838,9 @@ async function generateMatterAnalytics(userId) {
         const foldersCollection = mongoose.connection.collection(COLLECTIONS.folders);
 
         // Obtener carpetas agrupadas por materia (normalizando a minúsculas y quitando espacios extra)
+        // Solo carpetas activas (no archivadas)
         const matterStats = await foldersCollection.aggregate([
-            { $match: { userId: userId } },
+            { $match: { userId: userId, archived: { $ne: true } } },
             {
                 $addFields: {
                     // Normalizar materia: convertir a minúsculas y quitar espacios extra
