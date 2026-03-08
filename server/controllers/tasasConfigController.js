@@ -51,6 +51,7 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
                 tipoTasa,
                 fechaInicio: moment.utc(primeraFecha.fecha).startOf('day').toDate(),
                 fechaUltima: moment.utc(ultimaFecha.fecha).startOf('day').toDate(),
+                fechaUltimaCompleta: moment.utc(ultimaFecha.fecha).startOf('day').toDate(),
                 fechasFaltantes: []
             });
 

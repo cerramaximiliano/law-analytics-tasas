@@ -76,6 +76,7 @@ async function actualizarConfiguracion(tipoTasa) {
         tipoTasa,
         fechaInicio: moment.utc(primeraFecha.fecha).startOf('day').toDate(),
         fechaUltima: fechaUltima,
+        fechaUltimaCompleta: fechaUltima,
         fechasFaltantes: [],
         ultimaVerificacion: new Date()
     });

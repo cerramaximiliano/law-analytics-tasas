@@ -541,8 +541,9 @@ async function guardarTasasPasivas(resultadoProcesamiento) {
                 logger.info(`No se encontró configuración para tasaPasivaBNA, creando nueva`);
                 config = new TasasConfig({
                     tipoTasa: 'tasaPasivaBNA',
-                    fechaInicio: fechaMasReciente, // La primera fecha que conocemos
+                    fechaInicio: fechaMasReciente,
                     fechaUltima: fechaMasReciente,
+                    fechaUltimaCompleta: fechaMasReciente,
                     fechasFaltantes: [],
                     ultimaVerificacion: new Date()
                 });
