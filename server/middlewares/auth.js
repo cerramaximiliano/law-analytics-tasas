@@ -17,6 +17,7 @@ exports.verificaAutenticacion = async (req, res, next) => {
     // Obtener token de las cookies o del header Authorization
     const authHeader = req.headers.authorization;
     const token =
+      req.cookies.auth_token ||
       req.cookies.access_token ||
       (authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null);
 
