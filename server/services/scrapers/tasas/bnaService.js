@@ -691,11 +691,12 @@ async function completarDiasIntermedios(tipoTasa, diasIntermedios, datosUltimoRe
                 // Para otras tasas, crear un wrapper específico
                 guardarFuncion = async (datos) => {
                     // Simular el mismo formato que guardarTasaActivaBNA
-                    return await exports.actualizarTasa(
+                    return await actualizarTasa(
                         datos,
                         tipoTasa,
                         () => valorTasa, // Usar directamente el valor calculado
-                        [] // Sin tasas adicionales
+                        [], // Sin tasas adicionales
+                        'BNA Web'
                     );
                 };
             }
