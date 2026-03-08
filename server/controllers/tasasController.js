@@ -981,6 +981,67 @@ exports.consultarPorFechas = async (req, res) => {
   }
 };
 /**
+ * Actualiza el valor de una tasa directamente en la base de datos para una fecha específica
+ * @route PUT /api/tasas/valor
+ */
+exports.actualizarValorDirecto = async (req, res) => {
+  try {
+    const { fecha, campo, valor } = req.body;
+
+    if (!fecha || !campo || valor === undefined || valor === null) {
+      return res.status(400).json({ success: false, mensaje: 'Se requieren fecha, campo y valor' });
+    }
+
+    const camposValidos = [
+      'tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA',
+      'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658',
+      'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
+    ];
+
+    if (!camposValidos.includes(campo)) {
+      return res.status(400).json({ success: false, mensaje: `Campo inválido. Permitidos: ${camposValidos.join(', ')}` });
+    }
+
+    const valorNumerico = parseFloat(valor);
+    if (isNaN(valorNumerico)) {
+      return res.status(400).json({ success: false, mensaje: 'El valor debe ser un número válido' });
+    }
+
+    const fechaInicio = moment.utc(fecha, 'YYYY-MM-DD').startOf('day').toDate();
+    const fechaFin = moment.utc(fecha, 'YYYY-MM-DD').endOf('day').toDate();
+
+    if (isNaN(fechaInicio.getTime())) {
+      return res.status(400).json({ success: false, mensaje: 'Fecha inválida. Use formato YYYY-MM-DD' });
+    }
+
+    const resultado = await Tasas.findOneAndUpdate(
+      { fecha: { $gte: fechaInicio, $lte: fechaFin } },
+      { $set: { [campo]: valorNumerico } },
+      { new: true, upsert: false }
+    );
+
+    if (!resultado) {
+      return res.status(404).json({ success: false, mensaje: 'No se encontró registro para esa fecha' });
+    }
+
+    logger.info(`[actualizarValorDirecto] ${campo} en ${fecha} actualizado a ${valorNumerico} por ${req.usuario?.email || 'admin'}`);
+
+    return res.status(200).json({
+      success: true,
+      mensaje: 'Valor actualizado correctamente',
+      dato: {
+        fecha: moment.utc(resultado.fecha).format('YYYY-MM-DD'),
+        campo,
+        valor: resultado[campo],
+      },
+    });
+  } catch (error) {
+    logger.error(`Error en actualizarValorDirecto: ${error.message}`);
+    return res.status(500).json({ success: false, mensaje: 'Error al actualizar el valor' });
+  }
+};
+
+/**
  * Controlador para actualizar tasas utilizando el scraper
  * @route POST /api/tasas/update
  */
