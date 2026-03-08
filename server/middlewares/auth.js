@@ -14,9 +14,12 @@ const User = require("../models/users")
  */
 exports.verificaAutenticacion = async (req, res, next) => {
   try {
-    // Obtener token de las cookies
-    const token = req.cookies.access_token;
-    console.log(token, req.cookies)
+    // Obtener token de las cookies o del header Authorization
+    const authHeader = req.headers.authorization;
+    const token =
+      req.cookies.access_token ||
+      (authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null);
+
     if (!token) {
       logger.warn('Intento de acceso sin token de autenticación');
 
