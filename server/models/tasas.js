@@ -43,6 +43,22 @@ let tasasSchema = new Schema({
   tasaActivaTnaBNA: {
     type: Number
   },
+  // Fuente de origen para cada campo (servicio que lo extrajo)
+  fuentes: {
+    type: {
+      tasaPasivaBNA:      { type: String },
+      tasaPasivaBCRA:     { type: String },
+      tasaActivaBNA:      { type: String },
+      cer:                { type: String },
+      icl:                { type: String },
+      tasaActivaCNAT2601: { type: String },
+      tasaActivaCNAT2658: { type: String },
+      tasaActivaCNAT2764: { type: String },
+      tasaActivaTnaBNA:   { type: String },
+    },
+    _id: false,
+    default: {},
+  },
 });
 
 // Middleware pre-save para asegurar que la fecha siempre se guarde normalizada
@@ -94,6 +110,13 @@ tasasSchema.pre('save', async function () {
       if (this.tasaActivaCNAT2601 !== undefined) existingDoc.tasaActivaCNAT2601 = this.tasaActivaCNAT2601;
       if (this.tasaActivaCNAT2658 !== undefined) existingDoc.tasaActivaCNAT2658 = this.tasaActivaCNAT2658;
       if (this.tasaActivaTnaBNA !== undefined) existingDoc.tasaActivaTnaBNA = this.tasaActivaTnaBNA;
+
+      // Fusionar fuentes al hacer merge de documentos
+      if (this.fuentes) {
+        const fuentesNuevas = this.fuentes.toObject ? this.fuentes.toObject() : { ...this.fuentes };
+        const fuentesActuales = existingDoc.fuentes ? (existingDoc.fuentes.toObject ? existingDoc.fuentes.toObject() : { ...existingDoc.fuentes }) : {};
+        existingDoc.fuentes = { ...fuentesActuales, ...fuentesNuevas };
+      }
 
       await existingDoc.save();
       throw new Error('MERGED_WITH_EXISTING'); // Esta excepción será detectada por el controlador

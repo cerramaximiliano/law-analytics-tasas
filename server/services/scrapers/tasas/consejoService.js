@@ -1305,7 +1305,7 @@ async function mainConsejoService(opciones = {}) {
 
         const results = tasaActivaBna.tasasDiariasParaMongo;
         //console.log(results)
-        const resultsBulkOps = await bulkUpsertTasas(results);
+        const resultsBulkOps = await bulkUpsertTasas(results, 'CPACF');
 
         return resultsBulkOps;
 

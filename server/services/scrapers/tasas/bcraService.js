@@ -190,13 +190,17 @@ async function procesarDatosBCRA(tipoTasa, datos) {
                 if (existente) {
                     // Actualizar registro existente
                     existente[tipoTasa] = valor;
+                    if (!existente.fuentes) existente.fuentes = {};
+                    existente.fuentes[tipoTasa] = 'BCRA API';
+                    existente.markModified('fuentes');
                     await existente.save();
                     resultados.actualizados++;
                 } else {
                     // Crear nuevo registro
                     const nuevoRegistro = new Tasas({
                         fecha,
-                        [tipoTasa]: valor
+                        [tipoTasa]: valor,
+                        fuentes: { [tipoTasa]: 'BCRA API' },
                     });
 
                     await nuevoRegistro.save();

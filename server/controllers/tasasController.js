@@ -231,7 +231,7 @@ exports.getUltimaTasaHastaFecha = async (tipoTasa, fechaMaxima = null, opciones 
  * @param {Array} tasasArray - Array de objetos con datos de tasas
  * @returns {Promise<Object>} - Resultado de la operación con contadores
  */
-exports.bulkUpsertTasas = async (tasasArray) => {
+exports.bulkUpsertTasas = async (tasasArray, fuente = null) => {
   try {
     // Validar que se recibió un array
     if (!Array.isArray(tasasArray)) {
@@ -270,6 +270,11 @@ exports.bulkUpsertTasas = async (tasasArray) => {
         tasaPasivaBNA: item.tasaPasivaBNA,
       };
 
+      // Registrar fuentes por campo si se proporcionó fuente
+      if (fuente) {
+        if (item.tasaActiva !== undefined) doc['fuentes.tasaActivaBNA'] = fuente;
+        if (item.tasaPasivaBNA !== undefined) doc['fuentes.tasaPasivaBNA'] = fuente;
+      }
 
       // Crear operación de upsert
       return {
@@ -528,7 +533,7 @@ exports.obtenerRangoFechasFaltantes = async (tipoTasa, opciones = {}) => {
  * @param {function} calcularValor - Función que calcula el valor a guardar
  * @returns {Promise<Object>} - Resultado de la operación
  */
-exports.actualizarTasa = async (data, tipoTasa, calcularValor, tasasAdicionales = []) => {
+exports.actualizarTasa = async (data, tipoTasa, calcularValor, tasasAdicionales = [], fuente = null) => {
 
   try {
     // Verificar si los datos son válidos
@@ -572,13 +577,22 @@ exports.actualizarTasa = async (data, tipoTasa, calcularValor, tasasAdicionales 
       valoresParaGuardar[tasa.tipo] = tasa.calcularValor(data.data);
     }
 
+    // Construir mapa de fuentes para todos los campos a guardar
+    const fuentes = {};
+    if (fuente) {
+      fuentes[tipoTasa] = fuente;
+      for (const tasa of tasasAdicionales) {
+        fuentes[tasa.tipo] = fuente;
+      }
+    }
+
     // Guardar/actualizar el registro para la fecha original con todas las tasas
-    const resultadoOriginal = await guardarOActualizarTasasMultiples(fecha, valoresParaGuardar);
+    const resultadoOriginal = await guardarOActualizarTasasMultiples(fecha, valoresParaGuardar, fuentes);
     resultados.push(resultadoOriginal);
 
     // Si la fecha es anterior a la actual, también guardar/actualizar con la fecha actual
     if (esAnterior) {
-      const resultadoActual = await guardarOActualizarTasasMultiples(fechaActual, valoresParaGuardar);
+      const resultadoActual = await guardarOActualizarTasasMultiples(fechaActual, valoresParaGuardar, fuentes);
       resultados.push(resultadoActual);
       logger.info(`También se actualizaron las tasas para la fecha actual ${moment(fechaActual).format('YYYY-MM-DD')}`);
     }
@@ -608,7 +622,7 @@ exports.actualizarTasa = async (data, tipoTasa, calcularValor, tasasAdicionales 
 };
 
 // Nueva función para guardar/actualizar múltiples tasas en un solo documento
-async function guardarOActualizarTasasMultiples(fecha, valoresTasas) {
+async function guardarOActualizarTasasMultiples(fecha, valoresTasas, fuentes = {}) {
   try {
     // Buscar si ya existe un registro para esta fecha
     let documento = await Tasas.findOne({ fecha });
@@ -626,6 +640,15 @@ async function guardarOActualizarTasasMultiples(fecha, valoresTasas) {
         documento[tipoTasa] = valor;
         actualizaciones.push(tipoTasa);
       }
+    }
+
+    // Registrar la fuente de origen para cada campo actualizado
+    if (Object.keys(fuentes).length > 0) {
+      if (!documento.fuentes) documento.fuentes = {};
+      for (const [campo, fuenteValor] of Object.entries(fuentes)) {
+        documento.fuentes[campo] = fuenteValor;
+      }
+      documento.markModified('fuentes');
     }
 
     // Si hubo actualizaciones, guardar el documento
@@ -657,7 +680,7 @@ async function guardarOActualizarTasasMultiples(fecha, valoresTasas) {
  * @param {Object} data - Datos obtenidos del scraping
  * @returns {Promise<Object>} - Resultado de la operación
  */
-exports.guardarTasaActivaBNA = async (data) => {
+exports.guardarTasaActivaBNA = async (data, fuente = 'BNA Web') => {
   return await exports.actualizarTasa(
     data,
     'tasaActivaBNA',
@@ -686,6 +709,7 @@ exports.guardarTasaActivaBNA = async (data) => {
         }
       }
     ],
+    fuente,
   );
 };
 
@@ -900,6 +924,7 @@ exports.consultarPorFechas = async (req, res) => {
     // Seleccionar campos a devolver
     let proyeccion = { fecha: 1, _id: 0 };
     proyeccion[campo] = 1;
+    proyeccion[`fuentes.${campo}`] = 1;
 
     // Ejecutar la consulta según el valor de 'completo'
     let datos;
@@ -1016,7 +1041,7 @@ exports.actualizarValorDirecto = async (req, res) => {
 
     const resultado = await Tasas.findOneAndUpdate(
       { fecha: { $gte: fechaInicio, $lte: fechaFin } },
-      { $set: { [campo]: valorNumerico } },
+      { $set: { [campo]: valorNumerico, [`fuentes.${campo}`]: 'Admin Manual' } },
       { new: true, upsert: false }
     );
 

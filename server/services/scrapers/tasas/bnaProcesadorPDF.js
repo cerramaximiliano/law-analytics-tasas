@@ -288,6 +288,9 @@ async function guardarTasasPasivas(resultadoProcesamiento) {
                 // Actualizar registro existente
                 logger.info(`Actualizando registro existente para la fecha ${fecha.toISOString()}`);
                 registroExistente.tasaPasivaBNA = tasaValor;
+                if (!registroExistente.fuentes) registroExistente.fuentes = {};
+                registroExistente.fuentes.tasaPasivaBNA = 'BNA PDF';
+                registroExistente.markModified('fuentes');
 
                 try {
                     await registroExistente.save();
@@ -309,7 +312,8 @@ async function guardarTasasPasivas(resultadoProcesamiento) {
                 logger.info(`Creando nuevo registro para la fecha ${fecha.toISOString()}${esActual ? ' (fecha actual)' : ''}`);
                 const nuevoRegistro = new Tasas({
                     fecha,
-                    tasaPasivaBNA: tasaValor
+                    tasaPasivaBNA: tasaValor,
+                    fuentes: { tasaPasivaBNA: 'BNA PDF' },
                 });
 
                 try {
