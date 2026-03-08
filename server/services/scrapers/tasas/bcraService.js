@@ -270,7 +270,7 @@ async function consultarBCRA(idVariable, fechaDesde, fechaHasta, tipoTasa = null
         }
         
         // Construir URL de la API
-        const url = `https://api.bcra.gob.ar/estadisticas/v3.0/monetarias/${idVariable}?${params}`;
+        const url = `https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/${idVariable}?${params}`;
         
         // Realizar petición a la API con la opción de deshabilitar la verificación SSL
         const response = await axios.get(url, {
@@ -302,8 +302,14 @@ async function consultarBCRA(idVariable, fechaDesde, fechaHasta, tipoTasa = null
             throw new Error(errorMsg);
         }
         
-        logger.info(`Respuesta exitosa de API BCRA: ${response.data.results ? response.data.results.length : 0} registros obtenidos`);
-        
+        // En la API v4.0, los datos están en results[0].detalle (array de {fecha, valor})
+        const resultados = response.data.results;
+        const datos = (resultados && resultados.length > 0 && resultados[0].detalle)
+            ? resultados[0].detalle
+            : [];
+
+        logger.info(`Respuesta exitosa de API BCRA: ${datos.length} registros obtenidos`);
+
         // Si había errores previos para este tipo de tasa y API, resolverlos
         if (tipoTasa) {
             const config = await TasasConfig.findOne({ tipoTasa });
@@ -311,11 +317,11 @@ async function consultarBCRA(idVariable, fechaDesde, fechaHasta, tipoTasa = null
                 await config.resolverErrores(`bcra-api-${idVariable}`);
             }
         }
-        
+
         return {
             status: 'success',
             message: `Datos obtenidos correctamente de la API del BCRA para ${idVariable}`,
-            data: response.data.results
+            data: datos
         };
     } catch (error) {
         logger.error(`Error al consultar API del BCRA: ${error.message}`);
