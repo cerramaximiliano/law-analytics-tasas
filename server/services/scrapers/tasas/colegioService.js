@@ -1812,7 +1812,7 @@ async function procesarYGuardarTasas(detalles, options = {}) {
                         // Actualizar el documento existente
                         existingDoc[options.tipoTasa] = tasaData[options.tipoTasa];
                         if (!existingDoc.fuentes) existingDoc.fuentes = {};
-                        existingDoc.fuentes[options.tipoTasa] = 'CPACF';
+                        existingDoc.fuentes[options.tipoTasa] = 'Colegio';
                         existingDoc.markModified('fuentes');
                         await existingDoc.save();
                         result.actualizados++;
@@ -1823,7 +1823,7 @@ async function procesarYGuardarTasas(detalles, options = {}) {
                         });
                     } else {
                         // Crear un nuevo documento
-                        tasaData.fuentes = { [options.tipoTasa]: 'CPACF' };
+                        tasaData.fuentes = { [options.tipoTasa]: 'Colegio' };
                         const nuevaTasa = new Tasas(tasaData);
                         await nuevaTasa.save();
                         result.creados++;
