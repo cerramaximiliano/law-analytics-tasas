@@ -14,9 +14,10 @@ const User = require("../models/users")
  */
 exports.verificaAutenticacion = async (req, res, next) => {
   try {
-    // Obtener token de las cookies
-    const token = req.cookies.access_token;
-    console.log(token, req.cookies)
+    // Obtener token: primero del header Authorization, luego de las cookies
+    const authHeader = req.headers.authorization;
+    const tokenFromHeader = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const token = tokenFromHeader || req.cookies.access_token;
     if (!token) {
       logger.warn('Intento de acceso sin token de autenticación');
 
@@ -116,8 +117,9 @@ exports.verificaAdmin = (req, res, next) => {
       });
     }
 
-    // Verificar rol
-    if (req.usuario.role !== 'ADMIN') {
+    // Verificar rol — acepta ADMIN, ADMIN_ROLE, admin, superadmin
+    const rolesAdministrativos = ['ADMIN', 'ADMIN_ROLE', 'admin', 'superadmin', 'SUPERADMIN'];
+    if (!rolesAdministrativos.includes(req.usuario.role)) {
       logger.warn(`Intento de acceso a recurso administrativo por usuario sin permisos: ${req.usuario.email}`);
 
       return res.status(403).json({
