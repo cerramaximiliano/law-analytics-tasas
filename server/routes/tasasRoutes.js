@@ -13,6 +13,7 @@ router.use(verificaAutenticacion);
 router.get('/consulta', tasasController.consultarPorFechas);
 router.get('/listado', tasasConfigController.obtenerTasasConfig);
 router.get('/status', tasasConfigController.getTasasStatus);
+router.post('/rellenar-gaps', verificaAdmin, tasasController.rellenarGaps);
 router.post('/update', verificaAdmin, tasasController.updateTasas);
 router.put('/valor', verificaAdmin, tasasController.actualizarValorDirecto);
 

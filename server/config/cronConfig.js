@@ -56,6 +56,11 @@ const cronConfig = {
         }
     },
 
+    // Relleno global de gaps vía CPACF (ejecuta todas las tasas con fechas faltantes)
+    cpacfGapFiller: {
+        diario: '0 3 * * *'  // 3:00 AM diario, fuera del horario de scraping normal
+    },
+
     manager_files: {
         cleanup: '0 0 * * *'
     },

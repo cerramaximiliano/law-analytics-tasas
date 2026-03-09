@@ -1756,12 +1756,42 @@ async function procesarYGuardarTasas(detalles, options = {}) {
     // Procesar cada objeto de detalle
     for (const detalle of detalles) {
         try {
-            // Verificar que tengamos los datos necesarios
-            if (!detalle.fecha_desde || !detalle.fecha_hasta || detalle.porcentaje_interes_diario === undefined) {
-                logger.warn("Detalle incompleto:", detalle);
+            // Verificar que tengamos los datos mínimos necesarios
+            if (!detalle.fecha_desde || !detalle.fecha_hasta) {
+                logger.warn("Detalle sin fechas:", detalle);
                 result.errores++;
                 result.detalle_errores.push({
                     tipo: "Datos incompletos",
+                    detalle: JSON.stringify(detalle)
+                });
+                continue;
+            }
+
+            // Seleccionar el mejor valor de tasa disponible:
+            //   1. Diario (es el valor que se almacena directamente en la BD)
+            //   2. Mensual derivado a diario (mensual / 30.4167)
+            //   3. Anual derivado a diario (anual / 365)
+            let valorTasa = null;
+            let fuenteValor = null;
+
+            if (detalle.porcentaje_interes_diario != null) {
+                valorTasa = detalle.porcentaje_interes_diario;
+                fuenteValor = 'diario';
+            } else if (detalle.porcentaje_interes_mensual != null) {
+                valorTasa = parseFloat((detalle.porcentaje_interes_mensual / 30.4167).toFixed(8));
+                fuenteValor = 'mensual→diario';
+                logger.info('[procesarYGuardarTasas] ' + options.tipoTasa + ': usando tasa mensual derivada a diaria (' + detalle.porcentaje_interes_mensual + ' → ' + valorTasa + ')');
+            } else if (detalle.porcentaje_interes_anual != null) {
+                valorTasa = parseFloat((detalle.porcentaje_interes_anual / 365).toFixed(8));
+                fuenteValor = 'anual→diario';
+                logger.info('[procesarYGuardarTasas] ' + options.tipoTasa + ': usando tasa anual derivada a diaria (' + detalle.porcentaje_interes_anual + ' → ' + valorTasa + ')');
+            }
+
+            if (valorTasa == null) {
+                logger.warn("Detalle sin valor de tasa (ni diario, ni mensual, ni anual):", detalle);
+                result.errores++;
+                result.detalle_errores.push({
+                    tipo: "Sin valor de tasa",
                     detalle: JSON.stringify(detalle)
                 });
                 continue;
@@ -1797,10 +1827,8 @@ async function procesarYGuardarTasas(detalles, options = {}) {
 
                 // Crear el objeto de datos para guardar
                 const tasaData = {
-                    // Convertir a Date para que el setter del esquema pueda procesarlo
                     fecha: fecha.toDate(),
-                    // Asignar el porcentaje diario a tasaActivaCNAT2658
-                    [options.tipoTasa]: detalle.porcentaje_interes_diario
+                    [options.tipoTasa]: valorTasa
                 };
 
                 try {

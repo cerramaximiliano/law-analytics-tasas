@@ -4,6 +4,7 @@ const Tasas = require('../models/tasas');
 const logger = require('../utils/logger');
 const TasasConfig = require("../models/tasasConfig");
 const { main } = require('../services/scrapers/tasas/colegioService');
+const { fillAllGaps, fillGapsForTasa } = require('../services/scrapers/tasas/cpacfGapFillerService');
 const { verificarFechasFaltantes, actualizarFechasFaltantes } = require('./tasasConfigController');
 
 
@@ -764,8 +765,21 @@ exports.actualizarConfigTasa = async (tipoTasa, fecha) => {
           if (diferencia <= 1) {
             // Consecutivo o mismo día — extender el período completo
             config.fechaUltimaCompleta = fecha;
+          } else {
+            // Gap implícito: registrar las fechas intermedias en fechasFaltantes
+            if (!config.fechasFaltantes) config.fechasFaltantes = [];
+            const existentes = new Set(config.fechasFaltantes.map(f => moment.utc(f).format('YYYY-MM-DD')));
+            let cursor = ultimaCompleta.clone().add(1, 'days');
+            while (cursor.isBefore(nuevaFecha)) {
+              const key = cursor.format('YYYY-MM-DD');
+              if (!existentes.has(key)) {
+                config.fechasFaltantes.push(cursor.toDate());
+                existentes.add(key);
+              }
+              cursor.add(1, 'days');
+            }
+            config.markModified('fechasFaltantes');
           }
-          // Si diferencia > 1 hay un gap implícito → no tocar fechaUltimaCompleta
         }
       }
       
@@ -1171,5 +1185,32 @@ exports.updateTasas = async (req, res) => {
     // No enviamos respuesta aquí porque ya enviamos una respuesta 202 previamente
     // Si quieres manejar esta situación, deberías implementar un sistema de notificación
     // o un endpoint para consultar el estado del proceso
+  }
+};
+
+/**
+ * Rellena las fechas faltantes de todas las tasas soportadas por CPACF,
+ * o de una tasa específica cuando se proporciona el parámetro tipoTasa.
+ *
+ * POST /api/tasas/rellenar-gaps?tipoTasa=<campo>   → una tasa
+ * POST /api/tasas/rellenar-gaps                    → todas las tasas
+ */
+exports.rellenarGaps = async (req, res) => {
+  const { tipoTasa } = req.query;
+
+  try {
+    if (tipoTasa) {
+      // Responder de inmediato y ejecutar en background
+      res.status(202).json({ success: true, message: `Relleno de gaps iniciado para ${tipoTasa}` });
+      await fillGapsForTasa(tipoTasa);
+      logger.info(`[rellenarGaps] Completado para ${tipoTasa}`);
+    } else {
+      res.status(202).json({ success: true, message: 'Relleno global de gaps iniciado' });
+      const resultado = await fillAllGaps();
+      logger.info(`[rellenarGaps] Global completado: ${resultado.procesadas} procesadas, ${resultado.omitidas} omitidas`);
+    }
+  } catch (error) {
+    logger.error('[rellenarGaps] Error:', error);
+    // Respuesta ya enviada (202), solo logueamos
   }
 };

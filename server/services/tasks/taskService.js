@@ -11,6 +11,7 @@ const { actualizarTasaActivaBNAConReintentos } = require('../scrapers/tasas/bnaS
 const { mainBnaPasivaService } = require("../scrapers/tasas/bnaProcesadorPDF");
 const { getCurrentRateAndSave, findMissingDataServiceBcra } = require("../scrapers/tasas/bcraService");
 const { findMissingDataColegio } = require('../scrapers/tasas/colegioService');
+const { fillAllGaps } = require('../scrapers/tasas/cpacfGapFillerService');
 const { programarVerificacionTasas } = require('../../utils/verificadorTasas');
 const { cleanServerFiles } = require('../file_manager/file_manager');
 const { updateAllUserStats } = require('../stats/statsSyncService');
@@ -412,6 +413,13 @@ function initializeTasks() {
   );
 
 
+
+  scheduleTask(
+    'cpacf-gap-filler',
+    cronConfig.cpacfGapFiller.diario,
+    fillAllGaps,
+    'Rellena fechas faltantes de todas las tasas soportadas por CPACF'
+  );
 
   scheduleTask(
     'eliminar-files',
