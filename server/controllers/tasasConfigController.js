@@ -9,6 +9,42 @@ const logger = require('../utils/logger');
  * @param {string} tipoTasa - Tipo de tasa a verificar
  * @returns {Promise<Object>} - Resultado de la verificación con fechas faltantes
  */
+/**
+ * Devuelve el estado de actualización de todas las tasas respecto a la fecha actual
+ * @route GET /api/tasas/status
+ */
+exports.getTasasStatus = async (req, res) => {
+    try {
+        const hoy = moment.utc().startOf('day').toDate();
+        const configs = await TasasConfig.find({}).select('tipoTasa fechaUltima');
+
+        const total = configs.length;
+        const actualizadas = configs.filter(c =>
+            c.fechaUltima && moment.utc(c.fechaUltima).startOf('day').isSameOrAfter(moment.utc(hoy))
+        ).length;
+        const desactualizadas = configs
+            .filter(c => !c.fechaUltima || moment.utc(c.fechaUltima).startOf('day').isBefore(moment.utc(hoy)))
+            .map(c => ({
+                tipoTasa: c.tipoTasa,
+                fechaUltima: c.fechaUltima ? moment.utc(c.fechaUltima).format('YYYY-MM-DD') : null,
+            }));
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                total,
+                actualizadas,
+                noActualizadas: total - actualizadas,
+                desactualizadas,
+                fechaHoy: moment.utc(hoy).format('YYYY-MM-DD'),
+            },
+        });
+    } catch (error) {
+        logger.error(`Error en getTasasStatus: ${error.message}`);
+        return res.status(500).json({ success: false, mensaje: 'Error al obtener estado de tasas' });
+    }
+};
+
 exports.verificarFechasFaltantes = async (tipoTasa) => {
     try {
         // Validar el tipo de tasa

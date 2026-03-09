@@ -12,6 +12,7 @@ router.use(verificaAutenticacion);
 // Ejemplo: /api/tasas/consulta?fechaDesde=2023-01-01&fechaHasta=2023-01-31&campo=tasaPasivaBNA&completo=true
 router.get('/consulta', tasasController.consultarPorFechas);
 router.get('/listado', tasasConfigController.obtenerTasasConfig);
+router.get('/status', tasasConfigController.getTasasStatus);
 router.post('/update', verificaAdmin, tasasController.updateTasas);
 router.put('/valor', verificaAdmin, tasasController.actualizarValorDirecto);
 
