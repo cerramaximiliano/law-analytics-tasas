@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 // Middleware básicos
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ strict: false }));
 
 // CONFIGURACIÓN CORS MEJORADA
 const allowedOrigins = [
