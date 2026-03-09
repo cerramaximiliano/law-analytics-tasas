@@ -1085,6 +1085,13 @@ exports.actualizarValorDirecto = async (req, res) => {
 
     logger.info(`[actualizarValorDirecto] ${campo} en ${fecha} actualizado a ${valorNumerico} por ${req.usuario?.email || 'admin'}`);
 
+    // Actualizar TasasConfig para limpiar fechasFaltantes
+    try {
+      await exports.actualizarConfigTasa(campo, resultado.fecha);
+    } catch (configErr) {
+      logger.warn(`[actualizarValorDirecto] No se pudo actualizar TasasConfig para ${campo}: ${configErr.message}`);
+    }
+
     return res.status(200).json({
       success: true,
       mensaje: 'Valor actualizado correctamente',
