@@ -58,6 +58,9 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
             'tasaActivaCNAT2658',
             'tasaActivaCNAT2764',
             'tasaActivaTnaBNA',
+            'tasaPasivaBP',
+            'tasaActivaBPDolares',
+            'tasaPasivaBPDolares',
         ];
 
         if (!tiposValidos.includes(tipoTasa)) {
@@ -208,6 +211,9 @@ exports.actualizarFechasFaltantes = async (tipoTasa, fechasProcesadas = []) => {
             'tasaActivaCNAT2658',
             'tasaActivaCNAT2764',
             'tasaActivaTnaBNA',
+            'tasaPasivaBP',
+            'tasaActivaBPDolares',
+            'tasaPasivaBPDolares',
         ];
 
         if (!tiposValidos.includes(tipoTasa)) {
@@ -412,7 +418,10 @@ function formatearNombreTasa(tipoTasa) {
         'icl': 'ICL BCRA',
         'tasaActivaCNAT2601': 'Tasa Activa Banco Nación - Acta 2601',
         'tasaActivaCNAT2658': 'Tasa Activa Banco Nación - Acta 2658',
-        'tasaActivaCNAT2764': 'Tasa Activa Banco Nación - Acta 2764'
+        'tasaActivaCNAT2764': 'Tasa Activa Banco Nación - Acta 2764',
+        'tasaPasivaBP':        'Tasa Pasiva Banco Provincia',
+        'tasaActivaBPDolares': 'Tasa Activa Banco Provincia en Dólares',
+        'tasaPasivaBPDolares': 'Tasa Pasiva Banco Provincia en Dólares',
     };
 
     return formateo[tipoTasa] || tipoTasa;
