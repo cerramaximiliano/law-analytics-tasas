@@ -2092,4 +2092,38 @@ async function findMissingDataColegio(tipoTasa, tasaId, options = {}) {
 
 
 // Exportar clase y función principal
-module.exports = { CPACFScraper, main, findMissingDataColegio };
+module.exports = { CPACFScraper, main, findMissingDataColegio, rectificarUltimasFechas };
+/**
+ * Re-fetchea los últimos `dias` días de una tasa desde CPACF y sobreescribe los valores
+ * existentes. Sirve para detectar y corregir rectificaciones que CPACF publica con posteridad.
+ *
+ * @param {string} tipoTasa - Identificador de la tasa (ej. 'tasaPasivaBP')
+ * @param {string} rateId   - ID de la tasa en CPACF
+ * @param {number} [dias=5] - Cuántos días hacia atrás revisar
+ */
+async function rectificarUltimasFechas(tipoTasa, rateId, dias = 5) {
+    const hoy   = moment.utc().startOf('day');
+    const desde = hoy.clone().subtract(dias - 1, 'days');
+    const fechaDesde = desde.format('DD/MM/YYYY');
+    const fechaHasta = hoy.format('DD/MM/YYYY');
+
+    logger.info(`[rectificar] ${tipoTasa}: verificando últimos ${dias} días (${fechaDesde} → ${fechaHasta})`);
+
+    try {
+        await main({
+            dni: process.env.DU_01,
+            tomo: process.env.TREG_01,
+            folio: process.env.FREG_01,
+            tasaId: rateId,
+            fechaDesde,
+            fechaHasta,
+            capital: 100000,
+            screenshot: false,
+            tipoTasa,
+        });
+        logger.info(`[rectificar] ${tipoTasa}: rectificación completada`);
+    } catch (err) {
+        logger.error(`[rectificar] ${tipoTasa}: error durante rectificación: ${err.message}`);
+        throw err;
+    }
+}

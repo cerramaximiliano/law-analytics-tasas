@@ -27,12 +27,16 @@ const BCRA_NATIVE_MAP = [
 
 // Tasas BNA + CPACF: nativo (BNA web) como primario, CPACF como fallback histórico
 const CPACF_TASA_MAP = [
-	{ tipoTasa: 'tasaActivaBNA',      rateId: '1',  bnaCompatible: true  },
-	{ tipoTasa: 'tasaPasivaBNA',      rateId: '2',  bnaCompatible: false },
-	{ tipoTasa: 'tasaActivaCNAT2658', rateId: '22', bnaCompatible: true  },
-	{ tipoTasa: 'tasaActivaCNAT2764', rateId: '23', bnaCompatible: true  },
-	{ tipoTasa: 'tasaActivaTnaBNA',   rateId: '25', bnaCompatible: true  },
+	{ tipoTasa: 'tasaActivaBNA',       rateId: '1',  bnaCompatible: true  },
+	{ tipoTasa: 'tasaPasivaBNA',       rateId: '2',  bnaCompatible: false },
+	{ tipoTasa: 'tasaActivaCNAT2658',  rateId: '22', bnaCompatible: true  },
+	{ tipoTasa: 'tasaActivaCNAT2764',  rateId: '23', bnaCompatible: true  },
+	{ tipoTasa: 'tasaActivaTnaBNA',    rateId: '25', bnaCompatible: true  },
 	// { tipoTasa: 'tasaActivaCNAT2601', rateId: '??' }, // Verificar rate ID en CPACF
+	// Banco Provincia — solo CPACF (sin scraper nativo BNA)
+	{ tipoTasa: 'tasaPasivaBP',        rateId: '4',  bnaCompatible: false },
+	{ tipoTasa: 'tasaActivaBPDolares', rateId: '14', bnaCompatible: false },
+	{ tipoTasa: 'tasaPasivaBPDolares', rateId: '15', bnaCompatible: false },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

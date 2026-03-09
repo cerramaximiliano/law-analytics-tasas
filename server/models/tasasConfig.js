@@ -35,7 +35,7 @@ let tasasConfigSchema = new Schema({
   tipoTasa: {
     type: String,
     required: true,
-    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', "tasaActivaTnaBNA", 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764'],
+    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', 'tasaActivaTnaBNA', 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaPasivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares'],
     unique: true
   },
   fechaInicio: {

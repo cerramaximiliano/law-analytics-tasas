@@ -53,6 +53,19 @@ const cronConfig = {
         },
         tasaPasivaBNA: {
             busquedaFechas: '55 8,10,12 * * *'
+        },
+        // Banco Provincia (solo CPACF, sin scraper nativo)
+        tasaPasivaBP: {
+            busquedaFechas: '57 7,18,21 * * *',
+            rectificacion:  '0 8 * * *'
+        },
+        tasaActivaBPDolares: {
+            busquedaFechas: '59 7,18,21 * * *',
+            rectificacion:  '5 8 * * *'
+        },
+        tasaPasivaBPDolares: {
+            busquedaFechas: '1 8,19,22 * * *',
+            rectificacion:  '10 8 * * *'
         }
     },
 

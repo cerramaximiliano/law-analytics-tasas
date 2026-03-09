@@ -10,7 +10,7 @@ const { mainConsejoService, findMissingDataService } = require('../scrapers/tasa
 const { actualizarTasaActivaBNAConReintentos } = require('../scrapers/tasas/bnaService');
 const { mainBnaPasivaService } = require("../scrapers/tasas/bnaProcesadorPDF");
 const { getCurrentRateAndSave, findMissingDataServiceBcra } = require("../scrapers/tasas/bcraService");
-const { findMissingDataColegio } = require('../scrapers/tasas/colegioService');
+const { findMissingDataColegio, rectificarUltimasFechas } = require('../scrapers/tasas/colegioService');
 const { fillAllGaps } = require('../scrapers/tasas/cpacfGapFillerService');
 const { programarVerificacionTasas } = require('../../utils/verificadorTasas');
 const { cleanServerFiles } = require('../file_manager/file_manager');
@@ -412,7 +412,45 @@ function initializeTasks() {
     'Búsqueda de fechas sin datos y scraping de tasa pasiva BNA'
   );
 
+  // ── Banco Provincia ──────────────────────────────────────────────────────────
+  scheduleTask(
+    'busqueda-fechas-tasaPasivaBP',
+    cronConfig.colegio.tasaPasivaBP.busquedaFechas,
+    () => findMissingDataColegio("tasaPasivaBP", "4"),
+    'Búsqueda de fechas faltantes — Tasa Pasiva Banco Provincia'
+  );
+  scheduleTask(
+    'rectificacion-tasaPasivaBP',
+    cronConfig.colegio.tasaPasivaBP.rectificacion,
+    () => rectificarUltimasFechas("tasaPasivaBP", "4"),
+    'Rectificación de últimos días — Tasa Pasiva Banco Provincia'
+  );
 
+  scheduleTask(
+    'busqueda-fechas-tasaActivaBPDolares',
+    cronConfig.colegio.tasaActivaBPDolares.busquedaFechas,
+    () => findMissingDataColegio("tasaActivaBPDolares", "14"),
+    'Búsqueda de fechas faltantes — Tasa Activa Banco Provincia en Dólares'
+  );
+  scheduleTask(
+    'rectificacion-tasaActivaBPDolares',
+    cronConfig.colegio.tasaActivaBPDolares.rectificacion,
+    () => rectificarUltimasFechas("tasaActivaBPDolares", "14"),
+    'Rectificación de últimos días — Tasa Activa Banco Provincia en Dólares'
+  );
+
+  scheduleTask(
+    'busqueda-fechas-tasaPasivaBPDolares',
+    cronConfig.colegio.tasaPasivaBPDolares.busquedaFechas,
+    () => findMissingDataColegio("tasaPasivaBPDolares", "15"),
+    'Búsqueda de fechas faltantes — Tasa Pasiva Banco Provincia en Dólares'
+  );
+  scheduleTask(
+    'rectificacion-tasaPasivaBPDolares',
+    cronConfig.colegio.tasaPasivaBPDolares.rectificacion,
+    () => rectificarUltimasFechas("tasaPasivaBPDolares", "15"),
+    'Rectificación de últimos días — Tasa Pasiva Banco Provincia en Dólares'
+  );
 
   scheduleTask(
     'cpacf-gap-filler',

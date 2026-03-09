@@ -1055,6 +1055,7 @@ exports.actualizarValorDirecto = async (req, res) => {
       'tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA',
       'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658',
       'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
+      'tasaPasivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares',
     ];
 
     if (!camposValidos.includes(campo)) {

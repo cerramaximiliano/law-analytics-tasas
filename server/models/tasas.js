@@ -43,18 +43,30 @@ let tasasSchema = new Schema({
   tasaActivaTnaBNA: {
     type: Number
   },
+  tasaPasivaBP: {
+    type: Number
+  },
+  tasaActivaBPDolares: {
+    type: Number
+  },
+  tasaPasivaBPDolares: {
+    type: Number
+  },
   // Fuente de origen para cada campo (servicio que lo extrajo)
   fuentes: {
     type: {
-      tasaPasivaBNA:      { type: String },
-      tasaPasivaBCRA:     { type: String },
-      tasaActivaBNA:      { type: String },
-      cer:                { type: String },
-      icl:                { type: String },
-      tasaActivaCNAT2601: { type: String },
-      tasaActivaCNAT2658: { type: String },
-      tasaActivaCNAT2764: { type: String },
-      tasaActivaTnaBNA:   { type: String },
+      tasaPasivaBNA:       { type: String },
+      tasaPasivaBCRA:      { type: String },
+      tasaActivaBNA:       { type: String },
+      cer:                 { type: String },
+      icl:                 { type: String },
+      tasaActivaCNAT2601:  { type: String },
+      tasaActivaCNAT2658:  { type: String },
+      tasaActivaCNAT2764:  { type: String },
+      tasaActivaTnaBNA:    { type: String },
+      tasaPasivaBP:        { type: String },
+      tasaActivaBPDolares: { type: String },
+      tasaPasivaBPDolares: { type: String },
     },
     _id: false,
     default: {},
@@ -110,6 +122,9 @@ tasasSchema.pre('save', async function () {
       if (this.tasaActivaCNAT2601 !== undefined) existingDoc.tasaActivaCNAT2601 = this.tasaActivaCNAT2601;
       if (this.tasaActivaCNAT2658 !== undefined) existingDoc.tasaActivaCNAT2658 = this.tasaActivaCNAT2658;
       if (this.tasaActivaTnaBNA !== undefined) existingDoc.tasaActivaTnaBNA = this.tasaActivaTnaBNA;
+      if (this.tasaPasivaBP !== undefined) existingDoc.tasaPasivaBP = this.tasaPasivaBP;
+      if (this.tasaActivaBPDolares !== undefined) existingDoc.tasaActivaBPDolares = this.tasaActivaBPDolares;
+      if (this.tasaPasivaBPDolares !== undefined) existingDoc.tasaPasivaBPDolares = this.tasaPasivaBPDolares;
 
       // Fusionar fuentes al hacer merge de documentos
       if (this.fuentes) {
