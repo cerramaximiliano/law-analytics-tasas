@@ -731,22 +731,42 @@ exports.actualizarConfigTasa = async (tipoTasa, fecha) => {
       
       // Verificar si hay fechas faltantes para actualizar fechaUltimaCompleta
       if (config.fechasFaltantes && config.fechasFaltantes.length > 0) {
-        // Ordenamos las fechas faltantes de forma ascendente
-        const fechasFaltantesOrdenadas = [...config.fechasFaltantes].sort((a, b) => a - b);
-        
-        // Si la primera fecha faltante es posterior a la fecha de inicio,
-        // entonces todos los datos están completos hasta la fecha faltante - 1 día
-        if (fechasFaltantesOrdenadas[0] > config.fechaInicio) {
-          const primerFechaFaltante = moment.utc(fechasFaltantesOrdenadas[0]);
-          config.fechaUltimaCompleta = primerFechaFaltante.clone().subtract(1, 'days').toDate();
+        // Eliminar la nueva fecha de la lista de faltantes si estaba ahí
+        const fechaNormStr = moment.utc(fecha).format('YYYY-MM-DD');
+        config.fechasFaltantes = config.fechasFaltantes.filter(
+          f => moment.utc(f).format('YYYY-MM-DD') !== fechaNormStr
+        );
+        config.markModified('fechasFaltantes');
+
+        if (config.fechasFaltantes.length > 0) {
+          const fechasFaltantesOrdenadas = [...config.fechasFaltantes].sort((a, b) => a - b);
+          if (fechasFaltantesOrdenadas[0] > config.fechaInicio) {
+            const primerFechaFaltante = moment.utc(fechasFaltantesOrdenadas[0]);
+            config.fechaUltimaCompleta = primerFechaFaltante.clone().subtract(1, 'days').toDate();
+          } else {
+            config.fechaUltimaCompleta = null;
+          }
         } else {
-          // Si la primera fecha faltante es la fecha de inicio o anterior,
-          // no hay período completo, así que fechaUltimaCompleta es null
-          config.fechaUltimaCompleta = null;
+          config.fechaUltimaCompleta = config.fechaUltima;
         }
       } else {
-        // Si no hay fechas faltantes, la fecha última completa es la misma que la fecha última
-        config.fechaUltimaCompleta = config.fechaUltima;
+        // fechasFaltantes vacío: solo avanzar fechaUltimaCompleta si la nueva fecha
+        // es consecutiva a la última completa conocida (evita reportar completo con gaps ocultos)
+        const nuevaFecha = moment.utc(fecha).startOf('day');
+        if (!config.fechaUltimaCompleta) {
+          // Sin referencia previa — solo establecer si coincide con la primera fecha
+          if (config.fechaInicio && nuevaFecha.isSame(moment.utc(config.fechaInicio).startOf('day'))) {
+            config.fechaUltimaCompleta = fecha;
+          }
+        } else {
+          const ultimaCompleta = moment.utc(config.fechaUltimaCompleta).startOf('day');
+          const diferencia = nuevaFecha.diff(ultimaCompleta, 'days');
+          if (diferencia <= 1) {
+            // Consecutivo o mismo día — extender el período completo
+            config.fechaUltimaCompleta = fecha;
+          }
+          // Si diferencia > 1 hay un gap implícito → no tocar fechaUltimaCompleta
+        }
       }
       
       return await config.save();
