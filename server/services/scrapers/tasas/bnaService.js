@@ -542,14 +542,75 @@ async function actualizarRegistroFechas(tipoTasa, datosVigencia) {
             logger.warn(`No se encontró configuración para la tasa ${tipoTasa}`);
             return null;
         }
-        
-        // Obtener fecha actual en UTC
-        const fechaHoy = new Date();
-        fechaHoy.setUTCHours(0, 0, 0, 0);
-        
-        // Actualizar fecha última
-        configTasa.fechaUltima = fechaHoy;
-        configTasa.ultimaVerificacion = new Date(); // Timestamp actual
+
+        // Obtener la última fecha REAL con datos en la BD para esta tasa
+        // (no asumir que es "hoy" — el scraper puede ejecutarse sin guardar datos para hoy)
+        const ultimoRegistroReal = await Tasas.findOne({ [tipoTasa]: { $exists: true, $ne: null } })
+            .sort({ fecha: -1 })
+            .select('fecha');
+
+        if (!ultimoRegistroReal) {
+            logger.warn(`No hay registros reales en Tasas para ${tipoTasa}, no se actualiza config`);
+            return configTasa;
+        }
+
+        const fechaUltimaReal = new Date(ultimoRegistroReal.fecha);
+        fechaUltimaReal.setUTCHours(0, 0, 0, 0);
+
+        // Solo actualizar si la fecha real es más reciente que la almacenada
+        if (configTasa.fechaUltima && fechaUltimaReal <= configTasa.fechaUltima) {
+            configTasa.ultimaVerificacion = new Date();
+            await configTasa.save();
+            return configTasa;
+        }
+
+        configTasa.fechaUltima = fechaUltimaReal;
+        configTasa.ultimaVerificacion = new Date();
+
+        // Actualizar fechaUltimaCompleta correctamente considerando gaps
+        const nuevaFecha = moment.utc(fechaUltimaReal).startOf('day');
+        if (configTasa.fechasFaltantes && configTasa.fechasFaltantes.length > 0) {
+            const fechaNormStr = nuevaFecha.format('YYYY-MM-DD');
+            configTasa.fechasFaltantes = configTasa.fechasFaltantes.filter(
+                f => moment.utc(f).format('YYYY-MM-DD') !== fechaNormStr
+            );
+            configTasa.markModified('fechasFaltantes');
+            if (configTasa.fechasFaltantes.length > 0) {
+                const ordenadas = [...configTasa.fechasFaltantes].sort((a, b) => a - b);
+                configTasa.fechaUltimaCompleta = ordenadas[0] > configTasa.fechaInicio
+                    ? moment.utc(ordenadas[0]).subtract(1, 'days').toDate()
+                    : null;
+            } else {
+                configTasa.fechaUltimaCompleta = fechaUltimaReal;
+            }
+        } else {
+            const ultimaCompleta = configTasa.fechaUltimaCompleta
+                ? moment.utc(configTasa.fechaUltimaCompleta).startOf('day')
+                : null;
+            if (!ultimaCompleta) {
+                if (configTasa.fechaInicio && nuevaFecha.isSame(moment.utc(configTasa.fechaInicio).startOf('day'))) {
+                    configTasa.fechaUltimaCompleta = fechaUltimaReal;
+                }
+            } else {
+                const diferencia = nuevaFecha.diff(ultimaCompleta, 'days');
+                if (diferencia <= 1) {
+                    configTasa.fechaUltimaCompleta = fechaUltimaReal;
+                } else {
+                    if (!configTasa.fechasFaltantes) configTasa.fechasFaltantes = [];
+                    const existentes = new Set(configTasa.fechasFaltantes.map(f => moment.utc(f).format('YYYY-MM-DD')));
+                    let cursor = ultimaCompleta.clone().add(1, 'days');
+                    while (cursor.isBefore(nuevaFecha)) {
+                        const key = cursor.format('YYYY-MM-DD');
+                        if (!existentes.has(key)) {
+                            configTasa.fechasFaltantes.push(cursor.toDate());
+                            existentes.add(key);
+                        }
+                        cursor.add(1, 'days');
+                    }
+                    configTasa.markModified('fechasFaltantes');
+                }
+            }
+        }
         
         // Si hay información de continuidad y días faltantes, agregarlos al registro
         if (datosVigencia && 
