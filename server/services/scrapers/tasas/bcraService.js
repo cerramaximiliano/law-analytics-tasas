@@ -1,6 +1,7 @@
 const TasasConfig = require("../../../models/tasasConfig");
 const Tasas = require("../../../models/tasas");
 const { verificarFechasFaltantes } = require('../../../controllers/tasasController')
+const { verificarFechasFaltantes: recalcularConfig } = require('../../../controllers/tasasConfigController')
 const axios = require("axios")
 const logger = require('../../../utils/logger');
 const moment = require("moment")
@@ -62,6 +63,54 @@ async function actualizarConfiguracion(tipoTasa) {
         if (!config.fechaUltima || fechaUltima > config.fechaUltima) {
             config.fechaUltima = fechaUltima;
             config.ultimaVerificacion = new Date();
+
+            // Actualizar fechaUltimaCompleta considerando gaps
+            const nuevaFecha = moment.utc(fechaUltima).startOf('day');
+            if (config.fechasFaltantes && config.fechasFaltantes.length > 0) {
+                // Eliminar la fecha de la lista de faltantes si estaba ahí
+                const fechaNormStr = nuevaFecha.format('YYYY-MM-DD');
+                config.fechasFaltantes = config.fechasFaltantes.filter(
+                    f => moment.utc(f).format('YYYY-MM-DD') !== fechaNormStr
+                );
+                config.markModified('fechasFaltantes');
+                if (config.fechasFaltantes.length > 0) {
+                    const ordenadas = [...config.fechasFaltantes].sort((a, b) => a - b);
+                    config.fechaUltimaCompleta = ordenadas[0] > config.fechaInicio
+                        ? moment.utc(ordenadas[0]).subtract(1, 'days').toDate()
+                        : null;
+                } else {
+                    config.fechaUltimaCompleta = fechaUltima;
+                }
+            } else {
+                const ultimaCompleta = config.fechaUltimaCompleta
+                    ? moment.utc(config.fechaUltimaCompleta).startOf('day')
+                    : null;
+                if (!ultimaCompleta) {
+                    if (config.fechaInicio && nuevaFecha.isSame(moment.utc(config.fechaInicio).startOf('day'))) {
+                        config.fechaUltimaCompleta = fechaUltima;
+                    }
+                } else {
+                    const diferencia = nuevaFecha.diff(ultimaCompleta, 'days');
+                    if (diferencia <= 1) {
+                        config.fechaUltimaCompleta = fechaUltima;
+                    } else {
+                        // Gap implícito: registrar fechas intermedias en fechasFaltantes
+                        if (!config.fechasFaltantes) config.fechasFaltantes = [];
+                        const existentes = new Set(config.fechasFaltantes.map(f => moment.utc(f).format('YYYY-MM-DD')));
+                        let cursor = ultimaCompleta.clone().add(1, 'days');
+                        while (cursor.isBefore(nuevaFecha)) {
+                            const key = cursor.format('YYYY-MM-DD');
+                            if (!existentes.has(key)) {
+                                config.fechasFaltantes.push(cursor.toDate());
+                                existentes.add(key);
+                            }
+                            cursor.add(1, 'days');
+                        }
+                        config.markModified('fechasFaltantes');
+                    }
+                }
+            }
+
             await config.save();
         }
         return config;
