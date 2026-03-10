@@ -3,7 +3,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const moment = require('moment');
 const logger = require('../../../utils/logger');
-const { guardarTasaActivaBNA, actualizarTasa } = require('../../../controllers/tasasController');
+// Lazy require para evitar dependencia circular con tasasController
+// (tasasController → cpacfGapFillerService → bnaService → tasasController)
+const getTasasController = () => require('../../../controllers/tasasController');
 const { getPuppeteerConfig } = require('../../../config/puppeteer');
 const TasasConfig = require('../../../models/tasasConfig');
 const Tasas = require('../../../models/tasas');
@@ -686,12 +688,12 @@ async function completarDiasIntermedios(tipoTasa, diasIntermedios, datosUltimoRe
             let guardarFuncion;
             
             if (tipoTasa === 'tasaActivaBNA') {
-                guardarFuncion = guardarTasaActivaBNA;
+                guardarFuncion = getTasasController().guardarTasaActivaBNA;
             } else {
                 // Para otras tasas, crear un wrapper específico
                 guardarFuncion = async (datos) => {
                     // Simular el mismo formato que guardarTasaActivaBNA
-                    return await actualizarTasa(
+                    return await getTasasController().actualizarTasa(
                         datos,
                         tipoTasa,
                         () => valorTasa, // Usar directamente el valor calculado
@@ -1015,7 +1017,7 @@ async function actualizarTasaActivaBNAConReintentos(tipoTasaParam, taskIdParam) 
         };
 
         // Guardar en la base de datos
-        const resultadoGuardado = await guardarTasaActivaBNA(resultadoScraping);
+        const resultadoGuardado = await getTasasController().guardarTasaActivaBNA(resultadoScraping);
 
         logger.info(`${tipoTasa} extraída: ${datosConVigencia.tna}% (vigente desde ${datosConVigencia.fechaFormateada})`);
         if (datosConVigencia.metaVigencia) {
