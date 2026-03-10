@@ -1101,9 +1101,6 @@ async function actualizarTasaEspecifica(tipoTasa) {
     return actualizarTasaActivaBNAConReintentos(tipoTasaActual, taskId);
 }
 
-// Exportar actualizarTasa como parte del módulo para uso interno
-exports.actualizarTasa = actualizarTasa;
-
 module.exports = {
     extraerTasaActivaBNAConReintentos,
     actualizarTasaActivaBNAConReintentos,
