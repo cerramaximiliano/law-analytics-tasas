@@ -64,6 +64,16 @@ let tasasConfigSchema = new Schema({
     type: Boolean,
     default: true
   },
+  // Indica que la tasa fue discontinuada oficialmente y no se actualizará más.
+  // Se excluye del chequeo de estado (no aparece como desactualizada).
+  discontinuada: {
+    type: Boolean,
+    default: false
+  },
+  // Fecha oficial en que la tasa dejó de actualizarse (opcional, informativa)
+  fechaFin: {
+    type: Date
+  },
   // Lista de errores de scraping relacionados con esta tasa
   erroresScraping: [errorScrapingSchema]
 });

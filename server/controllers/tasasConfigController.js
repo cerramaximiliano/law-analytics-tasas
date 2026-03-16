@@ -16,7 +16,7 @@ const logger = require('../utils/logger');
 exports.getTasasStatus = async (req, res) => {
     try {
         const hoy = moment.utc().startOf('day').toDate();
-        const configs = await TasasConfig.find({}).select('tipoTasa fechaUltima');
+        const configs = await TasasConfig.find({ discontinuada: { $ne: true } }).select('tipoTasa fechaUltima');
 
         const total = configs.length;
         const actualizadas = configs.filter(c =>

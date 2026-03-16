@@ -1,7 +1,6 @@
 const TasasConfig = require("../../../models/tasasConfig");
 const Tasas = require("../../../models/tasas");
-const { verificarFechasFaltantes } = require('../../../controllers/tasasController')
-const { verificarFechasFaltantes: recalcularConfig } = require('../../../controllers/tasasConfigController')
+const { verificarFechasFaltantes } = require('../../../controllers/tasasConfigController')
 const axios = require("axios")
 const logger = require('../../../utils/logger');
 const moment = require("moment")
@@ -94,19 +93,11 @@ async function actualizarConfiguracion(tipoTasa) {
                     if (diferencia <= 1) {
                         config.fechaUltimaCompleta = fechaUltima;
                     } else {
-                        // Gap implícito: registrar fechas intermedias en fechasFaltantes
-                        if (!config.fechasFaltantes) config.fechasFaltantes = [];
-                        const existentes = new Set(config.fechasFaltantes.map(f => moment.utc(f).format('YYYY-MM-DD')));
-                        let cursor = ultimaCompleta.clone().add(1, 'days');
-                        while (cursor.isBefore(nuevaFecha)) {
-                            const key = cursor.format('YYYY-MM-DD');
-                            if (!existentes.has(key)) {
-                                config.fechasFaltantes.push(cursor.toDate());
-                                existentes.add(key);
-                            }
-                            cursor.add(1, 'days');
-                        }
-                        config.markModified('fechasFaltantes');
+                        // Hay un salto de más de 1 día: recalcular desde la DB para evitar
+                        // falsos positivos (el BCRA publica fechas futuras en batch).
+                        await config.save();
+                        await verificarFechasFaltantes(tipoTasa);
+                        return config;
                     }
                 }
             }
