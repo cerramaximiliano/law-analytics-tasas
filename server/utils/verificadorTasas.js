@@ -36,7 +36,10 @@ async function verificarTasasActualizadas(options = {}) {
         logger.info(`Fecha de verificación: ${moment(fechaActual).format('YYYY-MM-DD')} (local)`);
 
         // Consultar todas las configuraciones de tasas según el filtro
-        const filtro = soloTasasActivas ? { activa: true } : {};
+        // Se excluyen siempre las tasas discontinuadas para no generar falsas alertas
+        const filtro = soloTasasActivas
+            ? { activa: true, discontinuada: { $ne: true } }
+            : { discontinuada: { $ne: true } };
         const tasasConfig = await TasasConfig.find(filtro);
         //console.log(tasasConfig)
         if (!tasasConfig || tasasConfig.length === 0) {
