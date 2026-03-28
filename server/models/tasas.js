@@ -81,10 +81,10 @@ tasasSchema.pre('save', function (next) {
   next();
 });
 
-// Para búsquedas por fecha
+// Para búsquedas por fecha (solo normaliza cuando fecha es una Date exacta, no un objeto con operadores)
 tasasSchema.pre('findOne', function () {
   const query = this.getQuery();
-  if (query.fecha) {
+  if (query.fecha && query.fecha instanceof Date) {
     query.fecha = moment.utc(query.fecha).startOf('day').toDate();
   }
 });
