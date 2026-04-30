@@ -1,6 +1,7 @@
 const TasasConfig = require("../../../models/tasasConfig");
 const Tasas = require("../../../models/tasas");
 const { verificarFechasFaltantes } = require('../../../controllers/tasasConfigController')
+const { getTipoIndice } = require('../../../utils/tasasIndices');
 const axios = require("axios")
 const logger = require('../../../utils/logger');
 const moment = require("moment")
@@ -62,6 +63,9 @@ async function actualizarConfiguracion(tipoTasa) {
         if (!config.fechaUltima || fechaUltima > config.fechaUltima) {
             config.fechaUltima = fechaUltima;
             config.ultimaVerificacion = new Date();
+            if (!config.tipoIndice) {
+                config.tipoIndice = getTipoIndice(tipoTasa);
+            }
 
             // Actualizar fechaUltimaCompleta considerando gaps
             const nuevaFecha = moment.utc(fechaUltima).startOf('day');
@@ -118,6 +122,7 @@ async function actualizarConfiguracion(tipoTasa) {
         fechaUltima: fechaUltima,
         fechaUltimaCompleta: fechaUltima,
         fechasFaltantes: [],
+        tipoIndice: getTipoIndice(tipoTasa),
         ultimaVerificacion: new Date()
     });
 

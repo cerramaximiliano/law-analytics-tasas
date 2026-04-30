@@ -21,6 +21,7 @@ const database = require('../server/utils/database');
 const Tasas = require('../server/models/tasas');
 const TasasConfig = require('../server/models/tasasConfig');
 const { verificarFechasFaltantes } = require('../server/controllers/tasasConfigController');
+const { getTipoIndice } = require('../server/utils/tasasIndices');
 
 const TIPO_TASA = 'tasaPasivaBCRA27802';
 const ID_VARIABLE = '1198';
@@ -173,6 +174,7 @@ async function run() {
 			fechaUltimaCompleta: moment.utc(ultimoDoc.fecha).startOf('day').toDate(),
 			fechasFaltantes: [],
 			descripcion: 'Tasa Pasiva BCRA Ley 27.802 art.55(a)',
+			tipoIndice: getTipoIndice(TIPO_TASA),
 			ultimaVerificacion: new Date(),
 		});
 		console.log(`TasasConfig creado.`);

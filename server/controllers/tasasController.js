@@ -6,6 +6,7 @@ const TasasConfig = require("../models/tasasConfig");
 const { main } = require('../services/scrapers/tasas/colegioService');
 const { fillAllGaps, fillGapsForTasa } = require('../services/scrapers/tasas/cpacfGapFillerService');
 const { verificarFechasFaltantes, actualizarFechasFaltantes } = require('./tasasConfigController');
+const { getTipoIndice } = require('../utils/tasasIndices');
 
 
 /**
@@ -784,7 +785,10 @@ exports.actualizarConfigTasa = async (tipoTasa, fecha) => {
           }
         }
       }
-      
+
+      if (!config.tipoIndice) {
+        config.tipoIndice = getTipoIndice(tipoTasa);
+      }
       return await config.save();
     } else {
       // Crear nueva configuración
@@ -794,6 +798,7 @@ exports.actualizarConfigTasa = async (tipoTasa, fecha) => {
         fechaUltima: fecha,
         fechaUltimaCompleta: fecha, // Si es nueva, asumimos que está completa
         fechasFaltantes: [],
+        tipoIndice: getTipoIndice(tipoTasa),
         ultimaVerificacion: new Date()
       });
     }

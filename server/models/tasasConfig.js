@@ -53,6 +53,12 @@ let tasasConfigSchema = new Schema({
   fechasFaltantes: [{
     type: Date
   }],
+  // Determina la fórmula de cálculo en law-analytics-server:
+  // 'indexado' (coeficiente acumulado) o 'interesDiario' (sumatoria de TNAs).
+  tipoIndice: {
+    type: String,
+    enum: ['indexado', 'interesDiario']
+  },
   ultimaVerificacion: {
     type: Date,
     default: Date.now

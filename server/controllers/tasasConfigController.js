@@ -2,6 +2,7 @@ const Tasas = require("../models/tasas");
 const TasasConfig = require("../models/tasasConfig");
 const moment = require('moment');
 const logger = require('../utils/logger');
+const { getTipoIndice } = require('../utils/tasasIndices');
 
 
 /**
@@ -92,7 +93,8 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
                 fechaInicio: moment.utc(primeraFecha.fecha).startOf('day').toDate(),
                 fechaUltima: moment.utc(ultimaFecha.fecha).startOf('day').toDate(),
                 fechaUltimaCompleta: moment.utc(ultimaFecha.fecha).startOf('day').toDate(),
-                fechasFaltantes: []
+                fechasFaltantes: [],
+                tipoIndice: getTipoIndice(tipoTasa)
             });
 
             await config.save();
@@ -167,6 +169,9 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
         config.fechasFaltantes = fechasFaltantesCalculadas;
         config.fechaUltimaCompleta = fechaUltimaCompleta;
         config.ultimaVerificacion = new Date();
+        if (!config.tipoIndice) {
+            config.tipoIndice = getTipoIndice(tipoTasa);
+        }
         await config.save();
 
         // Preparar respuesta

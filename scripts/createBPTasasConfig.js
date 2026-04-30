@@ -5,6 +5,7 @@ const path = require('path');
 mongoose.connect(process.env.URLDB).then(async () => {
   const TasasConfig = require(path.join(__dirname, '../server/models/tasasConfig'));
   const Tasas = require(path.join(__dirname, '../server/models/tasas'));
+  const { getTipoIndice } = require(path.join(__dirname, '../server/utils/tasasIndices'));
 
   const tasas = [
     { tipoTasa: 'tasaPasivaBP',        descripcion: 'Tasa Pasiva Banco Provincia' },
@@ -18,7 +19,7 @@ mongoose.connect(process.env.URLDB).then(async () => {
     if (!min || !max) { console.log(tipoTasa + ': sin datos en Tasas, saltando'); continue; }
     const doc = await TasasConfig.findOneAndUpdate(
       { tipoTasa },
-      { tipoTasa, descripcion, activa: true, fechaInicio: min.fecha, fechaUltima: max.fecha, fechaUltimaCompleta: max.fecha, fechasFaltantes: [] },
+      { tipoTasa, descripcion, activa: true, fechaInicio: min.fecha, fechaUltima: max.fecha, fechaUltimaCompleta: max.fecha, fechasFaltantes: [], tipoIndice: getTipoIndice(tipoTasa) },
       { upsert: true, new: true }
     );
     console.log('Creado:', doc.tipoTasa, '| desde:', doc.fechaInicio.toISOString().slice(0,10), '| hasta:', doc.fechaUltima.toISOString().slice(0,10));

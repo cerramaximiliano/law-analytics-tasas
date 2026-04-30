@@ -6,6 +6,7 @@ const Tasas = require('../../../models/tasas');
 const TasasConfig = require('../../../models/tasasConfig');
 const { descargarPdfTasasPasivasConReintentos } = require('./bnaDescargadorPDF');
 const { verificarFechasFaltantes } = require('../../../controllers/tasasConfigController');
+const { getTipoIndice } = require('../../../utils/tasasIndices');
 
 /**
  * Registra un error en el modelo TasasConfig
@@ -549,6 +550,7 @@ async function guardarTasasPasivas(resultadoProcesamiento) {
                     fechaUltima: fechaMasReciente,
                     fechaUltimaCompleta: fechaMasReciente,
                     fechasFaltantes: [],
+                    tipoIndice: getTipoIndice('tasaPasivaBNA'),
                     ultimaVerificacion: new Date()
                 });
                 await config.save();

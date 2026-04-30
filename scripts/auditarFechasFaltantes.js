@@ -23,6 +23,7 @@ const moment = require('moment');
 const config = require('../server/config');
 const Tasas = require('../server/models/tasas');
 const TasasConfig = require('../server/models/tasasConfig');
+const { getTipoIndice } = require('../server/utils/tasasIndices');
 
 const TIPOS_TASA = [
     'tasaPasivaBNA',
@@ -173,6 +174,7 @@ async function auditarTasa(tipoTasa) {
                 fechaUltima: computed.fechaUltima,
                 fechaUltimaCompleta: computed.fechaUltimaCompleta,
                 fechasFaltantes: gaps,
+                tipoIndice: getTipoIndice(tipoTasa),
                 ultimaVerificacion: new Date(),
             });
             console.log(`  └─ ✅ TasasConfig creado (no existía).`);
