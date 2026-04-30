@@ -54,10 +54,12 @@ let tasasConfigSchema = new Schema({
     type: Date
   }],
   // Determina la fórmula de cálculo en law-analytics-server:
-  // 'indexado' (coeficiente acumulado) o 'interesDiario' (sumatoria de TNAs).
+  //   'indexado'            → índice base 1 (CER, ICL)
+  //   'porcentajeAcumulado' → % acumulado desde fecha base (tasaPasivaBCRA / 27802)
+  //   'interesDiario'       → sumatoria de TNAs diarias
   tipoIndice: {
     type: String,
-    enum: ['indexado', 'interesDiario']
+    enum: ['indexado', 'interesDiario', 'porcentajeAcumulado']
   },
   ultimaVerificacion: {
     type: Date,

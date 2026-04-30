@@ -1,12 +1,13 @@
 // Mapeo entre tipoTasa y tipoIndice. Lo consume law-analytics-server para
 // elegir la fórmula de cálculo en /api/tasas/consulta?calcular=true:
-//   - 'indexado'      → (valorFinal / valorInicial) - 1   (CER, ICL, BCRA pasiva)
-//   - 'interesDiario' → sumatoria de TNAs diarias / 100   (todas las demás)
+//   - 'indexado'           → (Vf / Vi) - 1                              (CER, ICL: índices base 1)
+//   - 'porcentajeAcumulado'→ (Vf + 100) / (V_día_anterior + 100) - 1    (tasaPasivaBCRA / 27802)
+//   - 'interesDiario'      → sumatoria de TNAs diarias / 100            (resto)
 const TIPO_INDICE_POR_TASA = {
   cer: 'indexado',
   icl: 'indexado',
-  tasaPasivaBCRA: 'indexado',
-  tasaPasivaBCRA27802: 'indexado',
+  tasaPasivaBCRA: 'porcentajeAcumulado',
+  tasaPasivaBCRA27802: 'porcentajeAcumulado',
 
   tasaPasivaBNA: 'interesDiario',
   tasaActivaBNA: 'interesDiario',
