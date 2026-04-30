@@ -61,6 +61,7 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
             'tasaPasivaBP',
             'tasaActivaBPDolares',
             'tasaPasivaBPDolares',
+            'tasaPasivaBCRA27802',
         ];
 
         if (!tiposValidos.includes(tipoTasa)) {
@@ -214,6 +215,7 @@ exports.actualizarFechasFaltantes = async (tipoTasa, fechasProcesadas = []) => {
             'tasaPasivaBP',
             'tasaActivaBPDolares',
             'tasaPasivaBPDolares',
+            'tasaPasivaBCRA27802',
         ];
 
         if (!tiposValidos.includes(tipoTasa)) {
@@ -422,6 +424,7 @@ function formatearNombreTasa(tipoTasa) {
         'tasaPasivaBP':        'Tasa Pasiva Banco Provincia',
         'tasaActivaBPDolares': 'Tasa Activa Banco Provincia en Dólares',
         'tasaPasivaBPDolares': 'Tasa Pasiva Banco Provincia en Dólares',
+        'tasaPasivaBCRA27802': 'Tasa Pasiva BCRA Ley 27.802 art.55(a)',
     };
 
     return formateo[tipoTasa] || tipoTasa;

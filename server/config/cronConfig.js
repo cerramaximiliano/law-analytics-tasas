@@ -32,6 +32,10 @@ const cronConfig = {
         icl: {
             scraping: '35 7,9,11,13,15,21 * * *',                   // Obtener último dato API BCRA - ICL
             busquedaFechas: '40 7 * * *'              // Búsqueda de fechas faltantes
+        },
+        tasaPasiva27802: {
+            scraping: '40 7,9,11,13,15,21 * * *',       // Obtener último dato API BCRA - Tasa Pasiva Ley 27.802 art.55(a)
+            busquedaFechas: '45 7 * * *'                // Búsqueda de fechas faltantes
         }
     },
 

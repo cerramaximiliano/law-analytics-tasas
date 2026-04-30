@@ -52,6 +52,9 @@ let tasasSchema = new Schema({
   tasaPasivaBPDolares: {
     type: Number
   },
+  tasaPasivaBCRA27802: {
+    type: Number
+  },
   // Fuente de origen para cada campo (servicio que lo extrajo)
   fuentes: {
     type: {
@@ -67,6 +70,7 @@ let tasasSchema = new Schema({
       tasaPasivaBP:        { type: String },
       tasaActivaBPDolares: { type: String },
       tasaPasivaBPDolares: { type: String },
+      tasaPasivaBCRA27802: { type: String },
     },
     _id: false,
     default: {},
@@ -125,6 +129,7 @@ tasasSchema.pre('save', async function () {
       if (this.tasaPasivaBP !== undefined) existingDoc.tasaPasivaBP = this.tasaPasivaBP;
       if (this.tasaActivaBPDolares !== undefined) existingDoc.tasaActivaBPDolares = this.tasaActivaBPDolares;
       if (this.tasaPasivaBPDolares !== undefined) existingDoc.tasaPasivaBPDolares = this.tasaPasivaBPDolares;
+      if (this.tasaPasivaBCRA27802 !== undefined) existingDoc.tasaPasivaBCRA27802 = this.tasaPasivaBCRA27802;
 
       // Fusionar fuentes al hacer merge de documentos
       if (this.fuentes) {

@@ -20,9 +20,10 @@ const { findMissingDataServiceBcra } = require('./bcraService');
 
 // Tasas BCRA: servicio nativo capaz de rellenar histórico completo (BCRA API REST)
 const BCRA_NATIVE_MAP = [
-	{ tipoTasa: 'tasaPasivaBCRA', idVariable: '43' },
-	{ tipoTasa: 'cer',            idVariable: '30' },
-	{ tipoTasa: 'icl',            idVariable: '40' },
+	{ tipoTasa: 'tasaPasivaBCRA',      idVariable: '43' },
+	{ tipoTasa: 'cer',                 idVariable: '30' },
+	{ tipoTasa: 'icl',                 idVariable: '40' },
+	{ tipoTasa: 'tasaPasivaBCRA27802', idVariable: '1198' },
 ];
 
 // Tasas BNA + CPACF: nativo (BNA web) como primario, CPACF como fallback histórico

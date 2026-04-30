@@ -34,6 +34,7 @@ const TIPOS_TASA = [
     'tasaActivaCNAT2658',
     'tasaActivaCNAT2764',
     'tasaActivaTnaBNA',
+    'tasaPasivaBCRA27802',
 ];
 
 const args = process.argv.slice(2);

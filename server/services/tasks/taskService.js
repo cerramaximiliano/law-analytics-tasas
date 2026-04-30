@@ -376,6 +376,20 @@ function initializeTasks() {
     'Búsqueda de fechas sin datos y scraping de tasa icl BCRA desde API BCRA'
   );
 
+  scheduleTask(
+    'bcra-pasiva-27802',
+    cronConfig.bcra.tasaPasiva27802.scraping,
+    () => getCurrentRateAndSave("tasaPasivaBCRA27802", "1198"),
+    'Búsqueda de último dato de API BCRA - Tasa Pasiva Ley 27.802 art.55(a)'
+  );
+
+  scheduleTask(
+    'búsqueda-fechas-pasiva-27802',
+    cronConfig.bcra.tasaPasiva27802.busquedaFechas,
+    () => findMissingDataServiceBcra("tasaPasivaBCRA27802", "1198"),
+    'Búsqueda de fechas sin datos y scraping de tasa pasiva Ley 27.802 art.55(a) desde API BCRA'
+  );
+
   // Tareas Colegio
   scheduleTask(
     'busqueda-fechas-tasaActivaCNAT2658',
