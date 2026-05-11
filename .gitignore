@@ -6,3 +6,4 @@ node_modules/
 /logs
 /server/services/scrapers/tasas/pdfs
 /server/files/
+.claude/
