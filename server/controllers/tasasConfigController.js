@@ -395,7 +395,7 @@ exports.obtenerTasasConfig = async (req, res) => {
     try {
         // Obtener solo las tasas activas
         const tasas = await TasasConfig.find({ activa: true })
-            .select('tipoTasa descripcion fechaInicio fechaUltima fechaUltimaCompleta fechasFaltantes')
+            .select('tipoTasa descripcion fechaInicio fechaUltima fechaUltimaCompleta fechasFaltantes discontinuada')
             .sort('descripcion');
 
         // Transformar los datos para el SelectField
@@ -406,6 +406,7 @@ exports.obtenerTasasConfig = async (req, res) => {
             fechaUltima: tasa.fechaUltima,
             fechaUltimaCompleta: tasa.fechaUltimaCompleta,
             fechasFaltantes: tasa.fechasFaltantes ?? [],
+            discontinuada: !!tasa.discontinuada,
         }));
 
         return res.status(200).json(tasasFormateadas);
