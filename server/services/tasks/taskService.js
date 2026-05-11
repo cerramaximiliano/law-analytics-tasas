@@ -16,6 +16,7 @@ const { programarVerificacionTasas } = require('../../utils/verificadorTasas');
 const { cleanServerFiles } = require('../file_manager/file_manager');
 const { updateAllUserStats } = require('../stats/statsSyncService');
 const { generateAllUsersAnalytics } = require('../stats/statsAnalysisService');
+const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDatosPrevisionalesService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -493,6 +494,15 @@ function initializeTasks() {
     cronConfig.generateAnalysis.generateAllUsersAnalysis.diaria,
     generateAllUsersAnalytics,
     'Genera analisis de todos los usuarios'
+  )
+
+  // Auditoría de cobertura de datosprevisionales — corre 28-31 de cada mes a las 22:00.
+  // El servicio internamente verifica si hoy es el último día real del mes (mañana = 1).
+  scheduleTask(
+    'audit-datos-previsionales',
+    cronConfig.auditDatosPrevisionales.ultimoDiaDelMes,
+    runAuditDatosPrevisionales,
+    'Auditoría de cobertura de datosprevisionales (último día del mes)'
   )
 
 

@@ -100,6 +100,14 @@ const cronConfig = {
     generateAnalysis: {
         generateAllUsersAnalysis:
             { diaria: '0 5 * * *' }
+    },
+
+    // Auditoría de cobertura de la colección `datosprevisionales`.
+    // Se programa entre el 28 y el 31 a las 22:00; el servicio internamente
+    // verifica si hoy es el último día real del mes (mañana = 1) y solo
+    // ejecuta el reporte en ese caso.
+    auditDatosPrevisionales: {
+        ultimoDiaDelMes: '0 22 28-31 * *'
     }
 };
 
