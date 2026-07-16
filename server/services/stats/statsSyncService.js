@@ -204,17 +204,19 @@ async function updateUserStats(userId) {
       });
 
     await Promise.all(countPromises);
-    
-    // Actualizar estadísticas
+
+    // Actualizar estadísticas con dot-notation POR CLAVE: reemplazar el objeto `counts`
+    // entero borraba los contadores que este servicio NO recalcula y que law-analytics-server
+    // mantiene transaccionalmente (counts.postalDocuments — límite de escritos por plan —,
+    // counts.postalTrackings y counts.alerts), reseteando el límite cada madrugada.
+    const setQuery = { lastUpdated: new Date() };
+    for (const [key, value] of Object.entries(counts)) {
+      setQuery[`counts.${key}`] = value;
+    }
     const statsCollection = mongoose.connection.collection(COLLECTIONS.stats);
     await statsCollection.updateOne(
       { userId: userIdObj },
-      { 
-        $set: { 
-          counts,
-          lastUpdated: new Date()
-        } 
-      },
+      { $set: setQuery },
       { upsert: true }
     );
     
