@@ -48,7 +48,7 @@ async function run() {
 				console.log(`  CAMBIO ${f.periodo}: ${fmt(previo.valor)} → ${fmt(f.valor)} (${f.norma})`);
 			} else {
 				nuevos++;
-				console.log(`  nuevo  ${f.periodo}: ${fmt(f.valor)} (${f.norma}, ${dia(f.fechaNorma)})`);
+				console.log(`  nuevo  ${f.periodo}: ${fmt(f.valor)} (${f.norma}, publicada ${dia(f.fechaPublicacion)})`);
 			}
 
 			if (!simular) {

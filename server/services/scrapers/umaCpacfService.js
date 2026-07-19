@@ -135,7 +135,7 @@ async function obtenerValores(ambito = 'PJN') {
       valor,
       vigenciaDesde,
       norma: norma.replace(/\s+/g, ' ').trim(),
-      fechaNorma: aFecha(fechaNormaTxt),
+      fechaPublicacion: aFecha(fechaNormaTxt),
       vigenciaPublicada: aFecha(vigenciaTxt),
       periodo: periodoTxt.trim(),
       leyMarco: fuente.leyMarco,
@@ -156,7 +156,7 @@ async function obtenerValores(ambito = 'PJN') {
       porPeriodo.set(clave, f);
       continue;
     }
-    const gana = (f.fechaNorma || 0) > (previa.fechaNorma || 0) ? f : previa;
+    const gana = (f.fechaPublicacion || 0) > (previa.fechaPublicacion || 0) ? f : previa;
     const pierde = gana === f ? previa : f;
     logger.info(
       `umaCpacf: ${f.periodo} tiene dos resoluciones; se usa ${gana.norma} ($${gana.valor}) y se descarta ${pierde.norma} ($${pierde.valor}).`

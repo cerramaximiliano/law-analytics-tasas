@@ -59,10 +59,11 @@ let valorArancelarioSchema = new Schema(
       type: String,
       trim: true
     },
-    // Fecha de la resolución. No coincide con la vigencia: el CPACF publica el
-    // valor de un mes hasta dos meses después, asi que "última resolución" y
-    // "valor vigente hoy" son cosas distintas.
-    fechaNorma: {
+    // Cuándo se publicó la resolución. Es POSTERIOR a la vigencia, entre 58 y
+    // 80 días según la serie: el valor de mayo 2026 se publicó el 13/07/2026.
+    // Por eso "última resolución publicada" y "valor vigente hoy" no son lo
+    // mismo, y el nombre del campo dice publicación y no "fecha" a secas.
+    fechaPublicacion: {
       type: Date
     },
     // Fecha desde la que la fuente declara que rige, cuando no es el primero
