@@ -124,7 +124,13 @@ const cronConfig = {
     // minutos para no pegarle a las dos fuentes en el mismo minuto.
     jus: {
         scbaPba: '5 11,15 * * 1-5',
-        cordoba: '7 11,15 * * 1-5'
+        cordoba: '7 11,15 * * 1-5',
+        santaFe: '9 11,15 * * 1-5',
+        chubut: '11 11,15 * * 1-5',
+        salta: '13 11,15 * * 1-5',
+        neuquen: '15 11,15 * * 1-5',
+        rioNegro: '17 11,15 * * 1-5',
+        mendoza: '19 11,15 * * 1-5'
     }
 };
 

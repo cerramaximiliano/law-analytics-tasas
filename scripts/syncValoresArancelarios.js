@@ -16,12 +16,24 @@ const mongoose = require('mongoose');
 const { sincronizarUma } = require('../server/services/scrapers/umaSyncService');
 const { sincronizarJusScba } = require('../server/services/scrapers/jusScbaSyncService');
 const { sincronizarJusCordoba } = require('../server/services/scrapers/jusCordobaSyncService');
+const { sincronizarJusSantaFe } = require('../server/services/scrapers/jusSantaFeSyncService');
+const { sincronizarJusChubut } = require('../server/services/scrapers/jusChubutSyncService');
+const { sincronizarIusSalta } = require('../server/services/scrapers/iusSaltaSyncService');
+const { sincronizarJusNeuquen } = require('../server/services/scrapers/jusNeuquenSyncService');
+const { sincronizarJusRioNegro } = require('../server/services/scrapers/jusRioNegroSyncService');
+const { sincronizarJusMendoza } = require('../server/services/scrapers/jusMendozaSyncService');
 
 const FUENTES = {
 	uma: (simular) => sincronizarUma({ ambito: 'PJN', simular }),
 	'uma-caba': (simular) => sincronizarUma({ ambito: 'CABA', simular }),
 	jus: (simular) => sincronizarJusScba({ simular }),
-	'jus-cba': (simular) => sincronizarJusCordoba({ simular })
+	'jus-cba': (simular) => sincronizarJusCordoba({ simular }),
+	'jus-sfe': (simular) => sincronizarJusSantaFe({ simular }),
+	'jus-chu': (simular) => sincronizarJusChubut({ simular }),
+	'ius-sal': (simular) => sincronizarIusSalta({ simular }),
+	'jus-nqn': (simular) => sincronizarJusNeuquen({ simular }),
+	'jus-rn': (simular) => sincronizarJusRioNegro({ simular }),
+	'jus-mza': (simular) => sincronizarJusMendoza({ simular })
 };
 
 const fmt = (n) => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2 });

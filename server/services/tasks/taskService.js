@@ -20,6 +20,12 @@ const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDato
 const { sincronizarUma } = require('../scrapers/umaSyncService');
 const { sincronizarJusScba } = require('../scrapers/jusScbaSyncService');
 const { sincronizarJusCordoba } = require('../scrapers/jusCordobaSyncService');
+const { sincronizarJusSantaFe } = require('../scrapers/jusSantaFeSyncService');
+const { sincronizarJusChubut } = require('../scrapers/jusChubutSyncService');
+const { sincronizarIusSalta } = require('../scrapers/iusSaltaSyncService');
+const { sincronizarJusNeuquen } = require('../scrapers/jusNeuquenSyncService');
+const { sincronizarJusRioNegro } = require('../scrapers/jusRioNegroSyncService');
+const { sincronizarJusMendoza } = require('../scrapers/jusMendozaSyncService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -537,6 +543,24 @@ function initializeTasks() {
     () => sincronizarJusCordoba(),
     'Sincroniza el JUS Córdoba (Ley 9.459) desde el JSON del PJ Córdoba'
   )
+
+  scheduleTask('sync-jus-santafe', cronConfig.jus.santaFe, () => sincronizarJusSantaFe(),
+    'Sincroniza la Unidad JUS Santa Fe (Ley 12.851)')
+
+  scheduleTask('sync-jus-chubut', cronConfig.jus.chubut, () => sincronizarJusChubut(),
+    'Sincroniza el JUS Chubut')
+
+  scheduleTask('sync-ius-salta', cronConfig.jus.salta, () => sincronizarIusSalta(),
+    'Sincroniza el IUS Salta (Ley 8.035)')
+
+  scheduleTask('sync-jus-neuquen', cronConfig.jus.neuquen, () => sincronizarJusNeuquen(),
+    'Sincroniza el JUS Neuquén (Ley 1.594)')
+
+  scheduleTask('sync-jus-rionegro', cronConfig.jus.rioNegro, () => sincronizarJusRioNegro(),
+    'Sincroniza el JUS Río Negro')
+
+  scheduleTask('sync-jus-mendoza', cronConfig.jus.mendoza, () => sincronizarJusMendoza(),
+    'Sincroniza los dos JUS de Mendoza (honorarios y competencia por cuantía)')
 
 
   programarVerificacionTasas(module.exports, {
