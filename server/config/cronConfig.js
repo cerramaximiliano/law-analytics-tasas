@@ -115,7 +115,8 @@ const cronConfig = {
     // sin día fijo, así que se chequea seguido para agarrar la resolución nueva
     // el mismo día. Es idempotente: si no hay nada nuevo, no escribe.
     uma: {
-        cpacf: '0 11,15 * * 1-5'
+        cpacfPjn: '0 11,15 * * 1-5',
+        cpacfCaba: '2 11,15 * * 1-5'
     },
 
     // Sincronización del valor del JUS de la Provincia de Buenos Aires (SCBA).

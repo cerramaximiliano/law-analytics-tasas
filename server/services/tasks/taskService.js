@@ -509,10 +509,17 @@ function initializeTasks() {
 
   // Sincronización de valores UMA desde el CPACF (11 y 15 hs, lunes a viernes).
   scheduleTask(
-    'sync-uma-cpacf',
-    cronConfig.uma.cpacf,
+    'sync-uma-pjn',
+    cronConfig.uma.cpacfPjn,
     () => sincronizarUma({ ambito: 'PJN' }),
-    'Sincroniza valores UMA (Ley 27.423) desde la tabla del CPACF'
+    'Sincroniza UMA PJN (Ley 27.423) desde el CPACF'
+  )
+
+  scheduleTask(
+    'sync-uma-caba',
+    cronConfig.uma.cpacfCaba,
+    () => sincronizarUma({ ambito: 'CABA' }),
+    'Sincroniza UMA CABA (Ley 5.134) desde el CPACF'
   )
 
   // Sincronización del JUS de la Provincia de Buenos Aires desde la SCBA.

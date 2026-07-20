@@ -18,6 +18,7 @@ const { sincronizarJusScba } = require('../server/services/scrapers/jusScbaSyncS
 
 const FUENTES = {
 	uma: (simular) => sincronizarUma({ ambito: 'PJN', simular }),
+	'uma-caba': (simular) => sincronizarUma({ ambito: 'CABA', simular }),
 	jus: (simular) => sincronizarJusScba({ simular })
 };
 

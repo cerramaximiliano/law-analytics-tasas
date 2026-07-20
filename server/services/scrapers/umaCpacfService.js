@@ -25,6 +25,14 @@ const FUENTES = {
     url: 'https://www.cpacf.org.ar/noticia/5201/valores-uma-pjn-ley-27423l',
     leyMarco: 'Ley N° 27.423',
     descripcion: 'Unidad de Medida Arancelaria del Poder Judicial de la Nación'
+  },
+  // Ley 5.134 — honorarios profesionales en el fuero de la Ciudad de Buenos
+  // Aires. Misma estructura de tabla que PJN, otra ley y otra autoridad (la
+  // fija la Presidencia del Consejo de la Magistratura de la CABA).
+  CABA: {
+    url: 'https://www.cpacf.org.ar/noticia/5196/uma-pj-caba',
+    leyMarco: 'Ley N° 5.134',
+    descripcion: 'Unidad de Medida Arancelaria del Poder Judicial de la CABA'
   }
 };
 
