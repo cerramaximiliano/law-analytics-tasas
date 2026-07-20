@@ -18,6 +18,7 @@ const { updateAllUserStats } = require('../stats/statsSyncService');
 const { generateAllUsersAnalytics } = require('../stats/statsAnalysisService');
 const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDatosPrevisionalesService');
 const { sincronizarUma } = require('../scrapers/umaSyncService');
+const { sincronizarJusScba } = require('../scrapers/jusScbaSyncService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -512,6 +513,14 @@ function initializeTasks() {
     cronConfig.uma.cpacf,
     () => sincronizarUma({ ambito: 'PJN' }),
     'Sincroniza valores UMA (Ley 27.423) desde la tabla del CPACF'
+  )
+
+  // Sincronización del JUS de la Provincia de Buenos Aires desde la SCBA.
+  scheduleTask(
+    'sync-jus-scba',
+    cronConfig.jus.scbaPba,
+    () => sincronizarJusScba(),
+    'Sincroniza el JUS (Ley 14.967) desde la tabla de la SCBA'
   )
 
 

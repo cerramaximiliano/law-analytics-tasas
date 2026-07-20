@@ -116,6 +116,13 @@ const cronConfig = {
     // el mismo día. Es idempotente: si no hay nada nuevo, no escribe.
     uma: {
         cpacf: '0 11,15 * * 1-5'
+    },
+
+    // Sincronización del valor del JUS de la Provincia de Buenos Aires (SCBA).
+    // Mismo criterio que UMA: dos corridas de lunes a viernes, decaladas 5
+    // minutos para no pegarle a las dos fuentes en el mismo minuto.
+    jus: {
+        scbaPba: '5 11,15 * * 1-5'
     }
 };
 
