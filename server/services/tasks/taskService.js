@@ -17,6 +17,7 @@ const { cleanServerFiles } = require('../file_manager/file_manager');
 const { updateAllUserStats } = require('../stats/statsSyncService');
 const { generateAllUsersAnalytics } = require('../stats/statsAnalysisService');
 const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDatosPrevisionalesService');
+const { sincronizarUma } = require('../scrapers/umaSyncService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -503,6 +504,14 @@ function initializeTasks() {
     cronConfig.auditDatosPrevisionales.ultimoDiaDelMes,
     runAuditDatosPrevisionales,
     'Auditoría de cobertura de datosprevisionales (último día del mes)'
+  )
+
+  // Sincronización de valores UMA desde el CPACF (11 y 15 hs, lunes a viernes).
+  scheduleTask(
+    'sync-uma-cpacf',
+    cronConfig.uma.cpacf,
+    () => sincronizarUma({ ambito: 'PJN' }),
+    'Sincroniza valores UMA (Ley 27.423) desde la tabla del CPACF'
   )
 
 

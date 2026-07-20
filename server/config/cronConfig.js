@@ -108,6 +108,14 @@ const cronConfig = {
     // ejecuta el reporte en ese caso.
     auditDatosPrevisionales: {
         ultimoDiaDelMes: '0 22 28-31 * *'
+    },
+
+    // Sincronización de valores UMA (Ley 27.423) desde la tabla pública del
+    // CPACF. Dos corridas de lunes a viernes: el CPACF publica una vez por mes
+    // sin día fijo, así que se chequea seguido para agarrar la resolución nueva
+    // el mismo día. Es idempotente: si no hay nada nuevo, no escribe.
+    uma: {
+        cpacf: '0 11,15 * * 1-5'
     }
 };
 
