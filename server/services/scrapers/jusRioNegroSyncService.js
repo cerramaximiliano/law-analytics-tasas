@@ -11,6 +11,7 @@ function sincronizarJusRioNegro({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS RN',
+    clave: 'jus-rn',
     simular
   });
 }

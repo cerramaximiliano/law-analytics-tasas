@@ -12,6 +12,7 @@ function sincronizarJusScba({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS PBA',
+    clave: 'jus-pba',
     simular
   });
 }

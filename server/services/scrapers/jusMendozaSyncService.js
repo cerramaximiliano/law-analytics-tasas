@@ -11,6 +11,7 @@ function sincronizarJusMendoza({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS MZA',
+    clave: 'jus-mza',
     simular
   });
 }

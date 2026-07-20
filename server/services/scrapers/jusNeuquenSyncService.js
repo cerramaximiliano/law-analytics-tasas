@@ -11,6 +11,7 @@ function sincronizarJusNeuquen({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS NQN',
+    clave: 'jus-nqn',
     simular
   });
 }

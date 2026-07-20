@@ -12,6 +12,7 @@ function sincronizarJusCordoba({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS CBA',
+    clave: 'jus-cba',
     simular
   });
 }

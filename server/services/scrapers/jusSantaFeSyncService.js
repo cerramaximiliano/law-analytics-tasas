@@ -11,6 +11,7 @@ function sincronizarJusSantaFe({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS SFE',
+    clave: 'jus-sfe',
     simular
   });
 }

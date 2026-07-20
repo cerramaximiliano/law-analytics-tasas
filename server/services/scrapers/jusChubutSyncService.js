@@ -11,6 +11,7 @@ function sincronizarJusChubut({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'JUS CHU',
+    clave: 'jus-chu',
     simular
   });
 }

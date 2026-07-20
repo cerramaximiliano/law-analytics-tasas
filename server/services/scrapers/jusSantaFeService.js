@@ -23,7 +23,7 @@ const { parseMonto, fechaDeMesAnio, rotuloPeriodo } = require('./valoresParse');
 const FUENTE = {
   url: 'https://www.justiciasantafe.gov.ar/index.php/unidad_jus/unidad-jus-ley-12851/',
   leyMarco: 'Ley N° 12.851',
-  descripcion: 'Unidad JUS — honorarios profesionales en la Provincia de Santa Fe'
+  descripcion: 'Unidad JUS — honorarios en la Provincia de Santa Fe'
 };
 
 // "$136.317,62 a partir del 1 de abril de 2026 – <norma hasta el próximo $ o fin>"

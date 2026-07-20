@@ -14,6 +14,7 @@ function sincronizarUma({ ambito = 'PJN', simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(ambito),
     etiqueta: `UMA ${ambito}`,
+    clave: ambito === 'CABA' ? 'uma-caba' : 'uma-pjn',
     simular
   });
 }

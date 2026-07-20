@@ -11,6 +11,7 @@ function sincronizarIusSalta({ simular = false } = {}) {
   return sincronizarValores({
     obtener: () => obtenerValores(),
     etiqueta: 'IUS SAL',
+    clave: 'ius-sal',
     simular
   });
 }
