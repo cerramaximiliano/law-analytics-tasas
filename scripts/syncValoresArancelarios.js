@@ -15,11 +15,13 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { sincronizarUma } = require('../server/services/scrapers/umaSyncService');
 const { sincronizarJusScba } = require('../server/services/scrapers/jusScbaSyncService');
+const { sincronizarJusCordoba } = require('../server/services/scrapers/jusCordobaSyncService');
 
 const FUENTES = {
 	uma: (simular) => sincronizarUma({ ambito: 'PJN', simular }),
 	'uma-caba': (simular) => sincronizarUma({ ambito: 'CABA', simular }),
-	jus: (simular) => sincronizarJusScba({ simular })
+	jus: (simular) => sincronizarJusScba({ simular }),
+	'jus-cba': (simular) => sincronizarJusCordoba({ simular })
 };
 
 const fmt = (n) => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2 });

@@ -123,7 +123,8 @@ const cronConfig = {
     // Mismo criterio que UMA: dos corridas de lunes a viernes, decaladas 5
     // minutos para no pegarle a las dos fuentes en el mismo minuto.
     jus: {
-        scbaPba: '5 11,15 * * 1-5'
+        scbaPba: '5 11,15 * * 1-5',
+        cordoba: '7 11,15 * * 1-5'
     }
 };
 

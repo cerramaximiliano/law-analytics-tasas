@@ -19,6 +19,7 @@ const { generateAllUsersAnalytics } = require('../stats/statsAnalysisService');
 const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDatosPrevisionalesService');
 const { sincronizarUma } = require('../scrapers/umaSyncService');
 const { sincronizarJusScba } = require('../scrapers/jusScbaSyncService');
+const { sincronizarJusCordoba } = require('../scrapers/jusCordobaSyncService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -527,7 +528,14 @@ function initializeTasks() {
     'sync-jus-scba',
     cronConfig.jus.scbaPba,
     () => sincronizarJusScba(),
-    'Sincroniza el JUS (Ley 14.967) desde la tabla de la SCBA'
+    'Sincroniza el JUS PBA (Ley 14.967) desde la tabla de la SCBA'
+  )
+
+  scheduleTask(
+    'sync-jus-cordoba',
+    cronConfig.jus.cordoba,
+    () => sincronizarJusCordoba(),
+    'Sincroniza el JUS Córdoba (Ley 9.459) desde el JSON del PJ Córdoba'
   )
 
 
