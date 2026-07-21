@@ -40,12 +40,25 @@ const fechaCorta = (d) =>
   new Date(d).toLocaleDateString('es-AR', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' });
 
 /** Arma el objeto `contenido` de la plantilla valor-arancel desde el doc. */
-function armarContenido(doc) {
+// La línea de resolución tiene un límite (46). Algunas fuentes traen normas
+// largas --Santa Fe: "Resolución de Secretaría de Gobierno de fecha X",
+// Río Negro: "Resolución Conjunta Nº ... STJ y ... PG"-- que no entran. Se
+// degrada con elegancia: se prueba la forma completa, luego la norma sola, y si
+// nada entra se cae a "Vigente desde", que siempre es válida. La norma completa
+// no se pierde: queda en el registro y se ve en la vista de Datos Arancelarios.
+function armarResolucion(doc) {
   const desde = fechaCorta(doc.vigenciaDesde);
-  let resolucion;
-  if (doc.norma && doc.fechaPublicacion) resolucion = `${doc.norma} · publicada ${fechaCorta(doc.fechaPublicacion)}`;
-  else if (doc.norma && doc.norma !== doc.leyMarco) resolucion = `${doc.norma} · desde ${desde}`;
-  else resolucion = `Vigente desde ${desde}`;
+  const cabe = (t) => t.length <= LIMITES.resolucion;
+  const candidatos = [];
+  if (doc.norma && doc.fechaPublicacion) candidatos.push(`${doc.norma} · publicada ${fechaCorta(doc.fechaPublicacion)}`);
+  else if (doc.norma && doc.norma !== doc.leyMarco) candidatos.push(`${doc.norma} · desde ${desde}`);
+  if (doc.norma && doc.norma !== doc.leyMarco) candidatos.push(doc.norma);
+  candidatos.push(`Vigente desde ${desde}`);
+  return candidatos.find(cabe) || `Vigente desde ${desde}`;
+}
+
+function armarContenido(doc) {
+  const resolucion = armarResolucion(doc);
 
   return {
     unidad: doc.unidad,
