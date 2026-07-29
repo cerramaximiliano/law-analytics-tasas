@@ -42,9 +42,19 @@ const fuenteSchema = new Schema(
       vigenciaDesde: Date
     },
 
-    // Fecha de vigencia del último valor sobre el que ya se generó post + aviso.
-    // Se compara contra el vigente nuevo para no volver a avisar de lo mismo ni
-    // spamear en la carga histórica inicial.
+    // Escalón ya publicado que todavía no rige (una resolución puede fijar el
+    // mes próximo por adelantado). Null cuando no hay ninguno pendiente.
+    proximo: {
+      valor: Number,
+      periodo: String,
+      norma: String,
+      vigenciaDesde: Date
+    },
+
+    // Vigencia del período más nuevo PUBLICADO sobre el que ya se avisó —no del
+    // vigente: un mes futuro fijado por adelantado se anuncia el día que
+    // aparece, y esta marca evita re-avisarlo cuando entra en vigencia (y el
+    // spam en la carga histórica inicial).
     ultimaVigenciaAvisada: Date,
     ultimoPostId: { type: Schema.Types.ObjectId, ref: 'SocialPost' },
     ultimoPostFecha: Date
