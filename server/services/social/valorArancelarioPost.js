@@ -17,7 +17,7 @@
 
 const logger = require('../../utils/logger');
 
-const LIMITES = { unidad: 6, norma: 26, bajada: 64, valor: 14, periodo: 24, resolucion: 46 };
+const LIMITES = { unidad: 6, norma: 26, bajada: 64, valor: 14, periodo: 24, valor2: 14, periodo2: 24, resolucion: 46 };
 
 /** '$726.032,80' con centavos solo si los hay; '$58.465' si es entero. */
 function pesos(n) {
@@ -57,10 +57,16 @@ function armarResolucion(doc) {
   return candidatos.find(cabe) || `Vigente desde ${desde}`;
 }
 
-function armarContenido(doc) {
+/**
+ * @param {Object} doc          Escalón principal (el más viejo si son dos).
+ * @param {Object} [docSegundo] Segundo período fijado por la MISMA resolución
+ *                              (vigencia posterior a la de `doc`). Activa el
+ *                              layout doble de la plantilla.
+ */
+function armarContenido(doc, docSegundo) {
   const resolucion = armarResolucion(doc);
 
-  return {
+  const contenido = {
     unidad: doc.unidad,
     norma: doc.leyMarco,
     bajada: doc.descripcion,
@@ -69,6 +75,11 @@ function armarContenido(doc) {
     resolucion,
     variante: 'ficha'
   };
+  if (docSegundo) {
+    contenido.valor2 = pesos(docSegundo.valor);
+    contenido.periodo2 = periodoTexto(docSegundo.vigenciaDesde);
+  }
+  return contenido;
 }
 
 /** Campos del contenido que exceden el límite de la plantilla. */
@@ -79,26 +90,37 @@ function excesos(contenido) {
 }
 
 /**
- * Crea el post (estado borrador) para el valor vigente `doc`. Devuelve el
- * documento insertado, o null si el contenido no pasa los límites.
+ * Crea el post (estado borrador) para el valor `doc`. Si `docSegundo` viene,
+ * el post muestra los dos períodos que la misma resolución fijó de golpe.
+ * Devuelve el documento insertado, o null si el contenido no pasa los límites.
  * @param {import('mongodb').Db} db  Conexión nativa a la base compartida.
  */
-async function crearPostValorArancelario(db, doc) {
-  const contenido = armarContenido(doc);
+async function crearPostValorArancelario(db, doc, docSegundo = null) {
+  const contenido = armarContenido(doc, docSegundo);
   const problemas = excesos(contenido);
   if (problemas.length) {
     logger.warn(`valorArancelarioPost: ${doc.unidad} ${doc.ambito} excede límites (${problemas.join(', ')}); no se crea el post.`);
     return null;
   }
 
+  // "Julio y Agosto 2026" cuando los dos períodos son del mismo año; con el
+  // año de cada uno cuando el par cruza el fin de año (Dic 2026 y Ene 2027).
+  const periodoTitulo = docSegundo
+    ? (contenido.periodo.slice(-4) === contenido.periodo2.slice(-4)
+        ? `${contenido.periodo.slice(0, -5)} y ${contenido.periodo2}`
+        : `${contenido.periodo} y ${contenido.periodo2}`)
+    : contenido.periodo;
+
   const ahora = new Date();
   const post = {
-    titulo: `${doc.unidad} ${doc.ambito} — ${contenido.periodo}`,
+    titulo: `${doc.unidad} ${doc.ambito} — ${periodoTitulo}`,
     templateId: 'valor-arancel',
     formato: 'feed34',
     prompt: '',
     contenido,
-    caption: `${doc.unidad} ${doc.ambito} — último valor publicado: ${contenido.valor}, correspondiente a ${contenido.periodo}. ${contenido.resolucion}.`,
+    caption: docSegundo
+      ? `${doc.unidad} ${doc.ambito} — ${contenido.resolucion} fija dos valores: ${contenido.valor} para ${contenido.periodo} y ${contenido.valor2} para ${contenido.periodo2}.`
+      : `${doc.unidad} ${doc.ambito} — último valor publicado: ${contenido.valor}, correspondiente a ${contenido.periodo}. ${contenido.resolucion}.`,
     hashtags: ['abogados', 'honorarios', 'legaltech'],
     estado: 'borrador',
     // Marca de origen: el post lo generó la sincronización, no una persona.
