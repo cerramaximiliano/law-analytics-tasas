@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "mocha tests/**/*.test.js --timeout 10000",
-    "test:unit": "mocha tests/unit/**/*.test.js",
-    "test:integration": "mocha tests/integration/**/*.test.js",
+    "test": "mocha server/tests/**/*.test.js --timeout 10000",
+    "test:unit": "mocha server/tests/unit/**/*.test.js",
+    "test:integration": "mocha server/tests/integration/**/*.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -24,19 +24,18 @@
   "author": "Law Analytics Team",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1102.0",
     "@aws-sdk/client-ses": "^3.758.0",
-    "aws-sdk": "^2.1150.0",
     "axios": "^1.8.1",
-    "bcrypt": "^5.0.1",
+    "bcrypt": "^6.0.0",
     "body-parser": "^1.19.2",
     "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "download": "^8.0.0",
     "ejs": "^3.1.6",
     "express": "^4.21.2",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.3",
     "line-reader": "^0.4.0",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.34",
@@ -44,14 +43,11 @@
     "mongoose-unique-validator": "^3.0.0",
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.7",
-    "nodemailer": "^6.7.2",
-    "nodemailer-smtp-transport": "^2.7.4",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
     "pino": "^7.11.0",
     "pino-pretty": "^7.6.1",
-    "puppeteer": "^24.4.0",
-    "xlsx": "^0.18.5"
+    "puppeteer": "^24.4.0"
   },
   "devDependencies": {
     "chai": "^4.3.6",
@@ -59,14 +55,17 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "mocha": "^9.2.2",
-    "mockery": "^2.1.0",
-    "nodemon": "^2.0.15",
+    "mocha": "^11.8.0",
+    "nodemon": "^3.1.14",
     "prettier": "^2.6.0",
     "sinon": "^13.0.1",
     "supertest": "^6.2.2"
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.7",
+    "diff": "^8.0.2"
   }
 }
