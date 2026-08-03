@@ -11,17 +11,17 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         PORT: 3000,
-        CHROMIUM_PATH: '/usr/bin/chromium-browser'
+        CHROMIUM_PATH: '/usr/local/bin/chromium'
       },
       env_development: {  // Nuevo: configuración específica para desarrollo
         NODE_ENV: 'development',
         PORT: 3000,
-        CHROMIUM_PATH: '/usr/bin/chromium-browser'
+        CHROMIUM_PATH: '/usr/local/bin/chromium'
       },
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
-        CHROMIUM_PATH: '/usr/bin/chromium-browser'
+        CHROMIUM_PATH: '/usr/local/bin/chromium'
       },
       time: true,
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
