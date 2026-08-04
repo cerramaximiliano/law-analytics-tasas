@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const tasasRoutes = require('./tasasRoutes');
 const tasksRoutes = require('./tasksRoutes');
 const analysisRoutes = require('./statsAnalysisRoutes');
+const valoresArancelariosRoutes = require('./valoresArancelariosRoutes');
 
 // Configurar una ruta base para verificar que la API está funcionando
 router.get('/', (req, res) => {
@@ -21,6 +22,7 @@ router.get('/', (req, res) => {
 router.use('/tasas', tasasRoutes);
 router.use('/tasks', tasksRoutes);
 router.use('/stats', analysisRoutes);
+router.use('/valores-arancelarios', valoresArancelariosRoutes);
 
 if (process.env.NODE_ENV === 'development') {
   const tasksDevRoutes = require('./tasksDevRoutes');

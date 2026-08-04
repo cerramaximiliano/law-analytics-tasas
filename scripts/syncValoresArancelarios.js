@@ -1,40 +1,23 @@
 /**
  * Sincroniza valores arancelarios (UMA, JUS) contra la base — CLI.
  * La lógica vive en los *SyncService, que son los mismos que usa el cron; este
- * archivo solo agrega la conexión a Mongo y el volcado a consola.
+ * archivo solo agrega la conexión a Mongo y el volcado a consola. El mapa de
+ * fuentes es el registry compartido (fuentesArancelarias.js).
  *
  * Uso:
- *   node scripts/syncValoresArancelarios.js uma            # UMA PJN (CPACF)
- *   node scripts/syncValoresArancelarios.js jus            # JUS PBA (SCBA)
- *   node scripts/syncValoresArancelarios.js uma --simular  # sin escribir
+ *   node scripts/syncValoresArancelarios.js uma-pjn        # UMA PJN (CPACF)
+ *   node scripts/syncValoresArancelarios.js jus-pba        # JUS PBA (SCBA)
+ *   node scripts/syncValoresArancelarios.js uma --simular  # alias de uma-pjn, sin escribir
  */
 
 'use strict';
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { sincronizarUma } = require('../server/services/scrapers/umaSyncService');
-const { sincronizarJusScba } = require('../server/services/scrapers/jusScbaSyncService');
-const { sincronizarJusCordoba } = require('../server/services/scrapers/jusCordobaSyncService');
-const { sincronizarJusSantaFe } = require('../server/services/scrapers/jusSantaFeSyncService');
-const { sincronizarJusChubut } = require('../server/services/scrapers/jusChubutSyncService');
-const { sincronizarIusSalta } = require('../server/services/scrapers/iusSaltaSyncService');
-const { sincronizarJusNeuquen } = require('../server/services/scrapers/jusNeuquenSyncService');
-const { sincronizarJusRioNegro } = require('../server/services/scrapers/jusRioNegroSyncService');
-const { sincronizarJusMendoza } = require('../server/services/scrapers/jusMendozaSyncService');
+const { FUENTES_ARANCELARIAS } = require('../server/services/scrapers/fuentesArancelarias');
 
-const FUENTES = {
-	uma: (simular) => sincronizarUma({ ambito: 'PJN', simular }),
-	'uma-caba': (simular) => sincronizarUma({ ambito: 'CABA', simular }),
-	'jus-pba': (simular) => sincronizarJusScba({ simular }),
-	'jus-cba': (simular) => sincronizarJusCordoba({ simular }),
-	'jus-sfe': (simular) => sincronizarJusSantaFe({ simular }),
-	'jus-chu': (simular) => sincronizarJusChubut({ simular }),
-	'ius-sal': (simular) => sincronizarIusSalta({ simular }),
-	'jus-nqn': (simular) => sincronizarJusNeuquen({ simular }),
-	'jus-rn': (simular) => sincronizarJusRioNegro({ simular }),
-	'jus-mza': (simular) => sincronizarJusMendoza({ simular })
-};
+// Aliases históricos del CLI, previos a las claves canónicas del config.
+const ALIASES = { uma: 'uma-pjn' };
 
 const fmt = (n) => Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2 });
 
@@ -42,16 +25,17 @@ async function run() {
 	const args = process.argv.slice(2);
 	const cual = args.find((a) => !a.startsWith('--'));
 	const simular = args.includes('--simular');
-	const fn = FUENTES[cual];
+	const clave = ALIASES[cual] || cual;
+	const fuente = FUENTES_ARANCELARIAS[clave];
 
-	if (!fn) {
-		console.log(`Uso: node scripts/syncValoresArancelarios.js <${Object.keys(FUENTES).join('|')}> [--simular]`);
+	if (!fuente) {
+		console.log(`Uso: node scripts/syncValoresArancelarios.js <${Object.keys(FUENTES_ARANCELARIAS).join('|')}> [--simular]`);
 		return;
 	}
 
 	await mongoose.connect(process.env.URLDB);
 	try {
-		const r = await fn(simular);
+		const r = await fuente.ejecutar(simular);
 		console.log(`\n${r.publicados} valores publicados en la fuente.`);
 		console.log(`${r.nuevos} nuevo(s), ${r.corregidos} corregido(s), ${r.sinCambios} sin cambios.`);
 		if (simular) console.log('(--simular: no se escribió nada.)');
