@@ -113,19 +113,28 @@ async function sincronizarValores({ obtener, etiqueta, clave, simular = false })
       esNovedad = true;
       anunciados = pendientes;
 
-      // Si la resolución del período más nuevo fijó exactamente dos períodos,
-      // el post los muestra juntos —aunque el primero ya se hubiera avisado
-      // suelto en una corrida anterior—. Con una sola fila (o normas largas
-      // rectificatorias que abarcan más de dos), post simple del más nuevo.
+      // Qué muestra el post:
+      // 1) Dos períodos pendientes → post doble con ambos. Cubre a las fuentes
+      //    que publican dos meses de golpe aunque la norma sea la ley marco de
+      //    toda la serie (JUS PBA: Ley 14.967 para Jul+Ago) — agrupar por norma
+      //    acá fallaría, porque la ley matchea la serie completa.
+      // 2) Un solo pendiente cuya norma fijó exactamente dos períodos → post
+      //    doble incluyendo el que ya se avisó suelto en una corrida anterior
+      //    (UMA CABA: la Res fija dos meses pero el primero ya salió).
+      // 3) Resto (uno solo, o más de dos) → post simple del más nuevo.
       const masNuevo = pendientes[pendientes.length - 1];
-      const deLaMismaNorma = masNuevo.norma
-        ? filas
-            .filter((f) => f.norma === masNuevo.norma)
-            .sort((a, b) => a.vigenciaDesde - b.vigenciaDesde)
-        : [masNuevo];
+      let parPost = null;
+      if (pendientes.length === 2) {
+        parPost = pendientes;
+      } else if (pendientes.length === 1 && masNuevo.norma) {
+        const deLaMismaNorma = filas
+          .filter((f) => f.norma === masNuevo.norma)
+          .sort((a, b) => a.vigenciaDesde - b.vigenciaDesde);
+        if (deLaMismaNorma.length === 2) parPost = deLaMismaNorma;
+      }
 
-      if (deLaMismaNorma.length === 2) {
-        post = await crearPostValorArancelario(mongoose.connection.db, deLaMismaNorma[0], deLaMismaNorma[1]);
+      if (parPost) {
+        post = await crearPostValorArancelario(mongoose.connection.db, parPost[0], parPost[1]);
       } else {
         post = await crearPostValorArancelario(mongoose.connection.db, masNuevo);
       }
