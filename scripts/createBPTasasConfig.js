@@ -9,6 +9,7 @@ mongoose.connect(process.env.URLDB).then(async () => {
 
   const tasas = [
     { tipoTasa: 'tasaPasivaBP',        descripcion: 'Tasa Pasiva Banco Provincia' },
+    { tipoTasa: 'tasaActivaBP',        descripcion: 'Tasa Activa Banco Provincia Restantes Operaciones' },
     { tipoTasa: 'tasaActivaBPDolares', descripcion: 'Tasa Activa Banco Provincia en Dólares' },
     { tipoTasa: 'tasaPasivaBPDolares', descripcion: 'Tasa Pasiva Banco Provincia en Dólares' },
   ];

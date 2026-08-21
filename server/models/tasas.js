@@ -46,6 +46,9 @@ let tasasSchema = new Schema({
   tasaPasivaBP: {
     type: Number
   },
+  tasaActivaBP: {
+    type: Number
+  },
   tasaActivaBPDolares: {
     type: Number
   },
@@ -68,6 +71,7 @@ let tasasSchema = new Schema({
       tasaActivaCNAT2764:  { type: String },
       tasaActivaTnaBNA:    { type: String },
       tasaPasivaBP:        { type: String },
+      tasaActivaBP:        { type: String },
       tasaActivaBPDolares: { type: String },
       tasaPasivaBPDolares: { type: String },
       tasaPasivaBCRA27802: { type: String },
@@ -127,6 +131,7 @@ tasasSchema.pre('save', async function () {
       if (this.tasaActivaCNAT2658 !== undefined) existingDoc.tasaActivaCNAT2658 = this.tasaActivaCNAT2658;
       if (this.tasaActivaTnaBNA !== undefined) existingDoc.tasaActivaTnaBNA = this.tasaActivaTnaBNA;
       if (this.tasaPasivaBP !== undefined) existingDoc.tasaPasivaBP = this.tasaPasivaBP;
+      if (this.tasaActivaBP !== undefined) existingDoc.tasaActivaBP = this.tasaActivaBP;
       if (this.tasaActivaBPDolares !== undefined) existingDoc.tasaActivaBPDolares = this.tasaActivaBPDolares;
       if (this.tasaPasivaBPDolares !== undefined) existingDoc.tasaPasivaBPDolares = this.tasaPasivaBPDolares;
       if (this.tasaPasivaBCRA27802 !== undefined) existingDoc.tasaPasivaBCRA27802 = this.tasaPasivaBCRA27802;

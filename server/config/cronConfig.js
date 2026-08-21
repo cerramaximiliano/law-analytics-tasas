@@ -63,6 +63,10 @@ const cronConfig = {
             busquedaFechas: '57 7,18,21 * * *',
             rectificacion:  '0 8 * * *'
         },
+        tasaActivaBP: {
+            busquedaFechas: '3 8,19,22 * * *',
+            rectificacion:  '15 8 * * *'
+        },
         tasaActivaBPDolares: {
             busquedaFechas: '59 7,18,21 * * *',
             rectificacion:  '5 8 * * *'

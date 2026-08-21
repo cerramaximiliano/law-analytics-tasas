@@ -36,6 +36,7 @@ const CPACF_TASA_MAP = [
 	// { tipoTasa: 'tasaActivaCNAT2601', rateId: '??' }, // Verificar rate ID en CPACF
 	// Banco Provincia — solo CPACF (sin scraper nativo BNA)
 	{ tipoTasa: 'tasaPasivaBP',        rateId: '4',  bnaCompatible: false },
+	{ tipoTasa: 'tasaActivaBP',        rateId: '3',  bnaCompatible: false },
 	{ tipoTasa: 'tasaActivaBPDolares', rateId: '14', bnaCompatible: false },
 	{ tipoTasa: 'tasaPasivaBPDolares', rateId: '15', bnaCompatible: false },
 ];

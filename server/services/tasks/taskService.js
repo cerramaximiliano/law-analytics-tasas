@@ -451,6 +451,19 @@ function initializeTasks() {
   );
 
   scheduleTask(
+    'busqueda-fechas-tasaActivaBP',
+    cronConfig.colegio.tasaActivaBP.busquedaFechas,
+    () => findMissingDataColegio("tasaActivaBP", "3"),
+    'Búsqueda de fechas faltantes — Tasa Activa Banco Provincia Restantes Operaciones'
+  );
+  scheduleTask(
+    'rectificacion-tasaActivaBP',
+    cronConfig.colegio.tasaActivaBP.rectificacion,
+    () => rectificarUltimasFechas("tasaActivaBP", "3"),
+    'Rectificación de últimos días — Tasa Activa Banco Provincia Restantes Operaciones'
+  );
+
+  scheduleTask(
     'busqueda-fechas-tasaActivaBPDolares',
     cronConfig.colegio.tasaActivaBPDolares.busquedaFechas,
     () => findMissingDataColegio("tasaActivaBPDolares", "14"),

@@ -26,6 +26,12 @@ const TASAS_BP = [
 		minDateFrom: '1991-04-01',
 	},
 	{
+		tipoTasa:    'tasaActivaBP',
+		rateId:      '3',
+		label:       'Tasa Activa Banco Provincia Restantes Operaciones',
+		minDateFrom: '1991-04-01',
+	},
+	{
 		tipoTasa:    'tasaActivaBPDolares',
 		rateId:      '14',
 		label:       'Tasa Activa Banco Provincia en Dólares',
