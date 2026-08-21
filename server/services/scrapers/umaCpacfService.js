@@ -135,21 +135,32 @@ async function extraerDatosResolucionPdf(url) {
   const montoMatch = texto.match(/\(\s*\$\s*([\d.,]+)\s*\)/);
   const valor = montoMatch ? aNumero(montoMatch[1]) : null;
 
-  const vigMatch = texto
-    .toLowerCase()
-    .match(/a partir del\s+(?:d[ií]a\s+)?(primero|\d{1,2})[°º]?\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})/);
-  let vigenciaDesde = null;
-  if (vigMatch) {
-    const dia = vigMatch[1] === 'primero' ? '01' : vigMatch[1].padStart(2, '0');
-    const mes = MESES_LARGOS[vigMatch[2]];
-    if (mes) {
-      const f = moment.utc(`${vigMatch[3]}-${mes}-${dia}`, 'YYYY-MM-DD', true);
-      if (f.isValid()) vigenciaDesde = f.startOf('day').toDate();
-    }
-  }
+  const fechaEs = (m) => {
+    if (!m) return null;
+    const dia = m[1] === 'primero' ? '01' : m[1].padStart(2, '0');
+    const mes = MESES_LARGOS[m[2]];
+    if (!mes) return null;
+    const f = moment.utc(`${m[3]}-${mes}-${dia}`, 'YYYY-MM-DD', true);
+    return f.isValid() ? f.startOf('day').toDate() : null;
+  };
+
+  const vigenciaDesde = fechaEs(
+    texto
+      .toLowerCase()
+      .match(/a partir del\s+(?:d[ií]a\s+)?(primero|\d{1,2})[°º]?\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})/)
+  );
+
+  // Fecha de dictado: "Buenos Aires, 20 de agosto de 2026.-". La tabla del
+  // CPACF también la rotula mal (la Res 1930/26 figura como 03/08 cuando el
+  // PDF dice 20/08), así que si el PDF la trae, manda el PDF.
+  const fechaResolucion = fechaEs(
+    texto
+      .toLowerCase()
+      .match(/buenos aires,?\s+(primero|\d{1,2})[°º]?\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})/)
+  );
 
   if (!valor || !vigenciaDesde) return null;
-  return { valor, vigenciaDesde };
+  return { valor, vigenciaDesde, fechaResolucion };
 }
 
 /**
@@ -242,7 +253,7 @@ async function obtenerValores(ambito = 'PJN') {
         vigenciaDesde: datos.vigenciaDesde,
         norma: p.norma.replace(/\s+/g, ' ').trim(),
         normaUrl: p.normaUrl,
-        fechaPublicacion: aFecha(p.fechaNormaTxt),
+        fechaPublicacion: datos.fechaResolucion || aFecha(p.fechaNormaTxt),
         vigenciaPublicada: datos.vigenciaDesde,
         periodo,
         leyMarco: fuente.leyMarco,
@@ -291,6 +302,12 @@ async function obtenerValores(ambito = 'PJN') {
           f.vigenciaDesde = datos.vigenciaDesde;
           f.vigenciaPublicada = datos.vigenciaDesde;
           f.periodo = periodoPdf;
+        }
+        if (datos.fechaResolucion && (!f.fechaPublicacion || +datos.fechaResolucion !== +f.fechaPublicacion)) {
+          logger.warn(
+            `umaCpacf: la tabla fecha ${f.norma} el ${f.fechaPublicacion ? moment.utc(f.fechaPublicacion).format('DD/MM/YYYY') : '(sin fecha)'} pero su PDF dice ${moment.utc(datos.fechaResolucion).format('DD/MM/YYYY')}; manda la resolución.`
+          );
+          f.fechaPublicacion = datos.fechaResolucion;
         }
       } catch (e) {
         logger.warn(`umaCpacf: no se pudo verificar el PDF de ${f.norma}: ${e.message}`);
