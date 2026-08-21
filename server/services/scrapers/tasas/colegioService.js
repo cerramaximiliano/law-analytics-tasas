@@ -183,8 +183,9 @@ class CPACFScraper {
             logger.info('Haciendo click en SIGUIENTE...');
 
             const nextButton = await this.page.evaluate(() => {
-                const links = Array.from(document.querySelectorAll('a'));
-                const nextButton = links.find(link => link.textContent.includes('SIGUIENTE'));
+                // Sitio nuevo (08/2026): <button type="submit">Siguiente</button>; sitio viejo: <a>SIGUIENTE</a>
+                const candidates = Array.from(document.querySelectorAll('a, button[type="submit"]'));
+                const nextButton = candidates.find(el => el.textContent.trim().toUpperCase().includes('SIGUIENTE'));
                 if (nextButton) {
                     const rect = nextButton.getBoundingClientRect();
                     return {
@@ -298,8 +299,9 @@ class CPACFScraper {
             });
 
             // Extraer las opciones de tasas si están disponibles
+            // (sitio nuevo 08/2026: listbox #rate-select-desktop; sitio viejo: select[name="rate"])
             const rateOptions = await this.page.evaluate(() => {
-                const rateSelect = document.querySelector('select[name="rate"]');
+                const rateSelect = document.querySelector('#rate-select-desktop, .cpacf-rate-listbox, select[name="rate"]');
                 if (!rateSelect) return [];
 
                 return Array.from(rateSelect.options).map(option => ({
@@ -370,25 +372,30 @@ class CPACFScraper {
 
             // Verificar si estamos en la página principal con el selector de tasas
             const rateSelectExists = await this.page.evaluate(() => {
-                return document.querySelector('select[name="rate"]') !== null;
+                return document.querySelector('#rate-select-desktop, .cpacf-rate-listbox, select[name="rate"]') !== null;
             });
 
             if (!rateSelectExists) {
                 logger.info('No estamos en la página con el selector de tasas, navegando a la página principal...');
-                await this.navigateTo('/home');
+                await this.navigateTo('/index');
             }
 
-            // Seleccionar la tasa
-            await this.page.select('select[name="rate"]', rateId.toString());
+            // Seleccionar la tasa y enviar el formulario.
+            // Sitio nuevo (08/2026): el listbox visible es #rate-select-desktop y el valor real
+            // viaja en el hidden input[name="rate"] dentro de #rateForm (POST a /datos).
+            logger.info('Seleccionando la tasa y enviando el formulario...');
+            await this.page.evaluate((rid) => {
+                const listbox = document.querySelector('#rate-select-desktop, .cpacf-rate-listbox, select[name="rate"]');
+                if (listbox) {
+                    listbox.value = rid;
+                    listbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const hidden = document.querySelector('input[name="rate"]');
+                if (hidden) hidden.value = rid;
 
-            // Hacer click en el botón SIGUIENTE
-            logger.info('Haciendo click en SIGUIENTE para confirmar la selección de tasa...');
-            await this.page.evaluate(() => {
-                const links = Array.from(document.querySelectorAll('a'));
-                const nextButton = links.find(link => link.textContent.includes('SIGUIENTE'));
-                if (nextButton) nextButton.click();
-                else document.forms[0].submit();
-            });
+                const form = document.getElementById('rateForm') || document.forms[0];
+                if (form) form.submit();
+            }, rateId.toString());
 
             // Esperar a que la navegación termine
             await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
@@ -598,9 +605,10 @@ class CPACFScraper {
 
             // Detectar y hacer clic en el botón de manera más humana
             const calcularButtonInfo = await this.page.evaluate(() => {
-                // Primero buscar un botón o enlace específico con texto CALCULAR
+                // Buscar el botón o enlace de envío del formulario.
+                // Sitio nuevo (08/2026): <a class="btn">SIGUIENTE</a> que llama submitDataForm().
                 const calcularButton = Array.from(document.querySelectorAll('button, input[type="submit"], a.btn'))
-                    .find(el => el.textContent.includes('CALCULAR'));
+                    .find(el => el.textContent.includes('CALCULAR') || el.textContent.trim().toUpperCase() === 'SIGUIENTE');
 
                 if (calcularButton) {
                     const rect = calcularButton.getBoundingClientRect();
@@ -880,16 +888,16 @@ class CPACFScraper {
         try {
             // Verificar si estamos en la página principal con el selector de tasas
             const rateSelectExists = await this.page.evaluate(() => {
-                return document.querySelector('select[name="rate"]') !== null;
+                return document.querySelector('#rate-select-desktop, .cpacf-rate-listbox, select[name="rate"]') !== null;
             });
 
             if (!rateSelectExists) {
                 //console.log('No estamos en la página con el selector de tasas, navegando a la página principal...');
-                await this.navigateTo('/home');
+                await this.navigateTo('/index');
             }
 
             const rates = await this.page.evaluate(() => {
-                const select = document.querySelector('select[name="rate"]');
+                const select = document.querySelector('#rate-select-desktop, .cpacf-rate-listbox, select[name="rate"]');
                 if (!select) return [];
 
                 return Array.from(select.options)
