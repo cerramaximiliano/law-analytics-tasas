@@ -17,15 +17,21 @@ const IS_PROD = ENV === 'production';
 // Configuración de MongoDB
 const MONGODB = {
   url: process.env.URLDB,
+  // Estas opciones NUNCA se aplicaron hasta el 25/08/2026: database.js llamaba
+  // mongoose.connect(url) sin pasarlas, así que el pool corría con el default
+  // del driver (maxPoolSize 100). El stats sync (20 usuarios × ~8 counts en
+  // paralelo) lo inflaba a ~95 sockets contra Atlas y ahí quedaban para
+  // siempre (sin maxIdleTimeMS el driver no cierra conexiones ociosas). Este
+  // proceso solo era el mayor consumidor de conexiones del hub.
+  // Solo opciones que acepta el driver 6 (mongoose 8): useNewUrlParser,
+  // useUnifiedTopology y keepAlive* ya no existen y hacen fallar el connect.
   options: {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    maxPoolSize: 10, // Limite de conexiones simultáneas
-    serverSelectionTimeoutMS: 5000, // Tiempo límite para selección de servidor
-    socketTimeoutMS: 45000, // Tiempo límite para operaciones de socket
-    family: 4, // Usar IPv4
-    keepAlive: true, // Mantener conexiones activas
-    keepAliveInitialDelay: 300000 // Tiempo antes de enviar sondeos keep-alive
+    maxPoolSize: 20,               // ráfagas del stats sync se encolan; nada acá es latencia-crítico
+    minPoolSize: 0,
+    maxIdleTimeMS: 60000,          // cerrar sockets ociosos tras una ráfaga en vez de retenerlos
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    family: 4
   }
 };
 

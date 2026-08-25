@@ -48,8 +48,11 @@ exports.connect = async () => {
     });
     
     // Conectar a la base de datos
-    logger.info(`MongoDB: Conectando a ${config.mongodb.url}`);
-    await mongoose.connect(config.mongodb.url);
+    // Sin credenciales en el log: la URI de Atlas lleva user:password.
+    logger.info(`MongoDB: Conectando a ${String(config.mongodb.url).replace(/\/\/[^@/]+@/, '//***@')}`);
+    // Pasar las opciones: sin ellas el driver usa maxPoolSize=100 y este
+    // proceso llegó a sostener ~95 conexiones contra Atlas (ver config/index.js).
+    await mongoose.connect(config.mongodb.url, config.mongodb.options);
     
     return mongoose.connection;
   } catch (error) {
