@@ -228,47 +228,101 @@ async function updateUserStats(userId) {
   }
 }
 
+// Colecciones cuyo contador principal cuenta solo activos (archived: false) y
+// que además llevan un contador `<name>Total` con activos + archivados.
+const ARCHIVED_COLLECTIONS = ['folders', 'calculators', 'contacts'];
+
 /**
- * Actualiza las estadísticas para todos los usuarios
- * @returns {Promise<Object>} Resultado de la operación
+ * Cuenta documentos por usuario para UNA colección, en una sola agregación.
+ * Devuelve Map<userIdHex, { count, total? }> con la MISMA semántica que
+ * updateUserStats(): solo userId de tipo ObjectId (los string nunca contaron),
+ * calculators solo type 'Calculado', y "activo" = archived === false explícito
+ * (un doc sin el campo no cuenta como activo, igual que countDocuments({archived:false})).
+ */
+async function countByUser(name, collectionName) {
+  const match = { userId: { $type: 'objectId' } };
+  if (name === 'calculators') match.type = 'Calculado';
+
+  const group = { _id: '$userId', total: { $sum: 1 } };
+  if (ARCHIVED_COLLECTIONS.includes(name)) {
+    group.active = { $sum: { $cond: [{ $eq: ['$archived', false] }, 1, 0] } };
+  }
+
+  const rows = await mongoose.connection.collection(collectionName)
+    .aggregate([{ $match: match }, { $group: group }], { allowDiskUse: true })
+    .toArray();
+
+  const byUser = new Map();
+  for (const r of rows) byUser.set(String(r._id), r);
+  return byUser;
+}
+
+/**
+ * Actualiza las estadísticas para todos los usuarios.
+ *
+ * Una agregación por colección (6 queries en total) en vez de ~8 countDocuments
+ * por usuario en paralelo: la versión anterior lanzaba 20 usuarios × 8 counts a
+ * la vez y era la ráfaga que inflaba el pool de este proceso hasta ~95 sockets
+ * contra Atlas (25/08/2026). Misma salida: cada usuario recibe TODOS sus
+ * contadores (0 si no tiene documentos), escritos por clave con dot-notation.
+ *
+ * @returns {Promise<Object>} { success: usuarios escritos, errors: colecciones que fallaron }
  */
 async function updateAllUserStats() {
   try {
-    // Verificar conexión a MongoDB
     if (mongoose.connection.readyState !== 1) {
       logger.error('No hay conexión a MongoDB para actualizar estadísticas');
       return { success: 0, errors: 0, error: 'Sin conexión' };
     }
-    
-    const usersCollection = mongoose.connection.collection(COLLECTIONS.users);
-    
-    // Obtener todos los usuarios
-    const users = await usersCollection.find({}).toArray();
+
+    const t0 = Date.now();
+    const users = await mongoose.connection.collection(COLLECTIONS.users)
+      .find({}, { projection: { _id: 1 } }).toArray();
     logger.info(`Iniciando actualización de estadísticas para ${users.length} usuarios`);
-    
-    let successCount = 0;
+
+    // 1) Contadores de todas las colecciones, secuencial: una query por colección
+    const counted = new Map(); // name -> Map<userIdHex, row>
     let errorCount = 0;
-    
-    // Procesar usuarios en lotes
-    const batchSize = 20;
-    for (let i = 0; i < users.length; i += batchSize) {
-      const batch = users.slice(i, i + batchSize);
-      
-      // Actualizar cada usuario en el lote
-      const promises = batch.map(user => updateUserStats(user._id.toString()));
-      const results = await Promise.all(promises.map(p => p.catch(e => {
-        logger.error(e);
-        return false;
-      })));
-      
-      // Contar resultados
-      successCount += results.filter(result => result === true).length;
-      errorCount += results.filter(result => result === false).length;
-      
-      logger.info(`Procesado lote ${Math.floor(i/batchSize) + 1}/${Math.ceil(users.length/batchSize)}`);
+    for (const [name, collectionName] of Object.entries(COLLECTIONS)) {
+      if (name === 'users' || name === 'stats') continue;
+      try {
+        counted.set(name, await countByUser(name, collectionName));
+      } catch (error) {
+        // Si una colección falla no se escriben sus claves: poner 0 a todos los
+        // usuarios por un error transitorio sería peor que dejar el valor anterior.
+        logger.error(`Error al contar ${name}: ${error.message}`);
+        errorCount++;
+      }
     }
-    
-    logger.info(`Actualización completada. Éxitos: ${successCount}, Errores: ${errorCount}`);
+
+    // 2) Un update por usuario, en bulkWrite por chunks. Por clave con dot-notation:
+    //    reemplazar `counts` entero borraba postalDocuments/postalTrackings/alerts,
+    //    que law-analytics-server mantiene transaccionalmente.
+    const statsCollection = mongoose.connection.collection(COLLECTIONS.stats);
+    const now = new Date();
+    let successCount = 0;
+    const CHUNK = 500;
+    for (let i = 0; i < users.length; i += CHUNK) {
+      const ops = users.slice(i, i + CHUNK).map((user) => {
+        const key = String(user._id);
+        const setQuery = { lastUpdated: now };
+        for (const [name, byUser] of counted) {
+          const row = byUser.get(key);
+          if (ARCHIVED_COLLECTIONS.includes(name)) {
+            setQuery[`counts.${name}`] = row ? row.active : 0;
+            setQuery[`counts.${name}Total`] = row ? row.total : 0;
+          } else {
+            setQuery[`counts.${name}`] = row ? row.total : 0;
+          }
+        }
+        return { updateOne: { filter: { userId: user._id }, update: { $set: setQuery }, upsert: true } };
+      });
+      if (!ops.length) continue;
+      const res = await statsCollection.bulkWrite(ops, { ordered: false });
+      successCount += (res.matchedCount || 0) + (res.upsertedCount || 0);
+    }
+
+    logger.info(`Actualización completada en ${((Date.now() - t0) / 1000).toFixed(1)}s. Usuarios: ${successCount}, colecciones con error: ${errorCount}`);
     return { success: successCount, errors: errorCount };
   } catch (error) {
     logger.error(`Error al actualizar estadísticas: ${error.message}`);
