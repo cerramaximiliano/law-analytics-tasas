@@ -7,3 +7,9 @@ node_modules/
 /server/services/scrapers/tasas/pdfs
 /server/files/
 .claude/
+# Artefactos de scrapers y backups manuales que aparecían sin trackear en el server (25/08/2026)
+*.bak
+*.bak-*
+server/services/scrapers/tasas/resultados-*.json
+server/services/scrapers/tasas/resultados-*.html
+server/services/scrapers/tasas/*-para-mongo.json
