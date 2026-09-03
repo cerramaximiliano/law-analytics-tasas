@@ -135,7 +135,11 @@ async function inicializarApp() {
         // Recuperar secretos de AWS
         logger.info('Recuperando secretos...');
         const secretsString = await retrieveSecrets();
-        await fs.writeFile(".env", secretsString);
+        await fs.writeFile(".env", secretsString, { mode: 0o600 });
+    // `mode` solo aplica cuando writeFile CREA el archivo: si el .env ya existía
+    // conserva sus permisos previos (644) y los ~120 secretos del ecosistema
+    // quedan legibles por cualquier usuario del box. De ahí el chmod explícito.
+        await fs.chmod(".env", 0o600);
         dotenv.config();
 
         // Configurar zona horaria
