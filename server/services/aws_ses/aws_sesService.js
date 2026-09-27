@@ -10,7 +10,7 @@ const sendEmail = async (to, subject, htmlBody, textBody, attachments = []) => {
 
     emailParts.push(
         'MIME-Version: 1.0',
-        `From: soporte@lawanalytics.app`,
+        `From: ${process.env.ADMIN_ALERT_FROM || 'Law||Analytics Sistema <admin@lawanalytics.app>'}`,
         `To: ${to}`,
         `Subject: ${subject}`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
