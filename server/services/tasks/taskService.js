@@ -18,6 +18,7 @@ const { cleanServerFiles } = require('../file_manager/file_manager');
 const { updateAllUserStats } = require('../stats/statsSyncService');
 const { generateAllUsersAnalytics } = require('../stats/statsAnalysisService');
 const { runAuditTask: runAuditDatosPrevisionales } = require('../audit/auditDatosPrevisionalesService');
+const { runTareaSincronizacion: sincronizarDatosPrevisionales } = require('../scrapers/previsional/datosPrevisionalesService');
 const { sincronizarUma } = require('../scrapers/umaSyncService');
 const { sincronizarJusScba } = require('../scrapers/jusScbaSyncService');
 const { sincronizarJusCordoba } = require('../scrapers/jusCordobaSyncService');
@@ -578,6 +579,22 @@ function initializeTasks() {
     cronConfig.auditDatosPrevisionales.ultimoDiaDelMes,
     runAuditDatosPrevisionales,
     'Auditoría de cobertura de datosprevisionales (último día del mes)'
+  )
+
+  // Sincronización de datosprevisionales desde InfoLeg (ANSES, bonos, SMVM). Escribe meses nuevos
+  // y campos vacíos; los valores distintos ya cargados quedan como conflicto en el email.
+  scheduleTask(
+    'sync-datos-previsionales',
+    cronConfig.datosPrevisionales.sincronizacion,
+    () => sincronizarDatosPrevisionales(),
+    'Sincroniza datosprevisionales (haberes, PBU, PUAM, bono, SMVM) desde InfoLeg'
+  )
+
+  scheduleTask(
+    'sync-datos-previsionales-fin-de-mes',
+    cronConfig.datosPrevisionales.finDeMes,
+    () => sincronizarDatosPrevisionales(),
+    'Sincroniza datosprevisionales los días 25-31 (resolución ANSES y bono del mes siguiente)'
   )
 
   // Sincronización de valores UMA desde el CPACF (11 y 15 hs, lunes a viernes).

@@ -139,6 +139,15 @@ const cronConfig = {
         ultimoDiaDelMes: '0 22 28-31 * *'
     },
 
+    // Sincronización de `datosprevisionales` desde InfoLeg (resoluciones mensuales de ANSES,
+    // decretos de bono y resoluciones del Consejo del Salario). ANSES publica a fin de mes y el
+    // bono sale los últimos días hábiles: lunes y jueves a las 12:20, más los días 25 a 31 para
+    // agarrar la resolución apenas sale. Solo completa (no pisa valores cargados distintos).
+    datosPrevisionales: {
+        sincronizacion: '20 12 * * 1,4',
+        finDeMes: '20 18 25-31 * *'
+    },
+
     // Sincronización de valores UMA (Ley 27.423) desde la tabla pública del
     // CPACF. Tres corridas de lunes a viernes: el CPACF publica una vez por mes
     // sin día fijo (a veces a la tarde), así que se chequea seguido para agarrar

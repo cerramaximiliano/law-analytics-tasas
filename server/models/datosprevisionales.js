@@ -80,7 +80,21 @@ let datosPrevSchema = new Schema({
     SupMovilidad: {
     type: Boolean
     },
-  });
+    // Campos presentes en Atlas que el schema no tenía
+    referenciaDiferencialMax: { type: Number },
+    movilidadLey27426: { type: Number },
+    movilidadIpcTrimRetrasado3m: { type: Number },
+    movilidadAumentoMar2021: { type: Number },
+    norma: { type: String },
+    links: { type: [String] },
+    // Sincronizador (services/scrapers/previsional/datosPrevisionalesService.js)
+    baseImponibleMinima: { type: Number },
+    puam: { type: Number },
+    bono: { type: Number },          // monto máximo del bono/ayuda/refuerzo pagado en el mes; 0 si no hubo
+    bonoNorma: { type: String },
+    normaSMVM: { type: String },
+    fuentes: { type: Schema.Types.Mixed }, // { anses: [url], bono: [url], smvm: [url] }
+  }, { collection: 'datosprevisionales' });
 
 
   datosPrevSchema.plugin(uniqueValidator, {message: '{PATH} debe de ser unico'})
