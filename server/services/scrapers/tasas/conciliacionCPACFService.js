@@ -18,13 +18,14 @@ const logger = require('../../../utils/logger');
 const { CPACFScraper } = require('./colegioService');
 
 // tipoTasa → calculadora CPACF y desde cuándo conciliar. El valor diario se toma de
-// porcentaje_interes_anual / 365 (sin el redondeo a 4 decimales del diario que muestra CPACF).
+// porcentaje_interes_anual / divisor (365 salvo indicación) (sin el redondeo a 4 decimales del diario que muestra CPACF).
 const SERIES = {
 	tasaActivaCNAT2658: { rateId: '22', inicio: '2017-12-01' },
 	tasaActivaCNAT2764: { rateId: '23', inicio: '2022-11-07', capitalizacion: true },
 	tasaActivaTnaBNA: { rateId: '25', inicio: '2005-01-01' },
 	tasaPasivaBNA: { rateId: '2', inicio: '2005-01-01' },
-	tasaActivaBP: { rateId: '3', inicio: '2005-01-01' },
+	// Banco Provincia: CPACF (y nuestra serie) usan año de 360 días
+	tasaActivaBP: { rateId: '3', inicio: '2005-01-01', divisor: 360 },
 };
 
 const TOLERANCIA = 1e-6; // % diario
@@ -108,7 +109,7 @@ async function conciliarSerie({ tipoTasa, desde, hasta, aplicar = false, ventana
 			for (const p of det) {
 				const anual = Number(p.porcentaje_interes_anual);
 				if (!Number.isFinite(anual)) continue;
-				const valor = anual / 365;
+				const valor = anual / (serie.divisor || 365);
 				const pIni = moment.max(moment.utc(p.fecha_desde, 'DD/MM/YYYY'), v);
 				const pFin = moment.min(moment.utc(p.fecha_hasta, 'DD/MM/YYYY'), vFin);
 				for (let d = pIni.clone(); !d.isAfter(pFin); d.add(1, 'day')) {
