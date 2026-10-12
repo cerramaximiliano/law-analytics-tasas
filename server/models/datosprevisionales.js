@@ -97,6 +97,20 @@ let datosPrevSchema = new Schema({
     bonoEscalones: [{ _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String }],
     normaSMVM: { type: String },
     fuentes: { type: Schema.Types.Mixed }, // { anses: [url], bono: [url], smvm: [url] }
+    // ── Haber de caja (Ley 24.241): mismo esquema que law-analytics-server/models/DatosPrevisionales.js ──
+    indicesRemuneraciones: {
+      res140: { type: Number },
+      res135: { type: Number },
+      ley27260: { type: Number },
+      ley27260Provisorio: { type: Boolean },
+    },
+    rentasAutonomos: { type: Schema.Types.Mixed },
+    pbuAltas: { type: Number },
+    factorSuplementoAltas: { type: Number },
+    pcPctPorAnio: { type: Number },
+    papPctPorAnio: { type: Number },
+    normas: { type: Schema.Types.Mixed },
+    evidencias: { type: Schema.Types.Mixed },
   }, { collection: 'datosprevisionales' });
 
 
