@@ -13,7 +13,7 @@ const cronConfig = {
             busquedaFechas: '5 7 * * *'                // Búsqueda de fechas faltantes
         },
         tasaPasiva: {
-            scraping: '15 7,9,11,13,15,21 * * *',       // Scraping directo de BNA
+            scraping: '15 7,9,11,13,15,21 * * *',       // Sin uso: extracción del PDF del BNA no confiable (ver taskService)
             consejo: '5 22 * * *',                      // Scraping desde Consejo
             busquedaFechas: '10 7 * * *'               // Búsqueda de fechas faltantes
         }

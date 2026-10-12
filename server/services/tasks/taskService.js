@@ -8,7 +8,6 @@ const cronConfig = require('../../config/cronConfig');
 // Importar servicios
 const { mainConsejoService, findMissingDataService } = require('../scrapers/tasas/consejoService');
 const { actualizarTasaActivaBNAConReintentos } = require('../scrapers/tasas/bnaService');
-const { mainBnaPasivaService } = require("../scrapers/tasas/bnaProcesadorPDF");
 const { getCurrentRateAndSave, findMissingDataServiceBcra, actualizarSerieTNA } = require("../scrapers/tasas/bcraService");
 const { actualizarTodas: actualizarIndicesMensuales } = require("../scrapers/tasas/indicesMensualesService");
 const { conciliarUltimosDias } = require("../scrapers/tasas/conciliacionCPACFService");
@@ -324,12 +323,11 @@ function initializeTasks() {
   );
 
   // Tareas Tasa Pasiva BNA
-  scheduleTask(
-    'bna-tasa-pasiva-bna',
-    cronConfig.bna.tasaPasiva.scraping,
-    mainBnaPasivaService,
-    'Scraping de tasa pasiva BNA desde BNA'
-  );
+  // Sin scraping del PDF del BNA (mainBnaPasivaService): el texto de la planilla de tasas pasivas sale
+  // desordenado y el parser tomaba un renglón distinto según el día (caja de ahorro 0,25 %, plazos de
+  // otros rangos 17–27 %). La tasa pasiva del Banco Nación sale solo de fuentes verificadas: Consejo de
+  // la Magistratura CABA ("Tasa pasiva del Banco de la Nación Argentina"), faltantes del CPACF (tasa 2,
+  // "Tasa Pasiva Banco Nación") y la conciliación diaria con CPACF. No confundir con la pasiva BCRA.
 
   scheduleTask(
     'consejo-tasa-pasiva-bna',
