@@ -32,6 +32,7 @@ const TIPOS_TASA = [
     'cer',
     'icl',
     'tasaActivaCNAT2601',
+    'tasaActivaCNAT2630',
     'tasaActivaCNAT2658',
     'tasaActivaCNAT2764',
     'tasaActivaTnaBNA',

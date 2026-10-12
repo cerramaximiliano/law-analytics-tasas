@@ -35,7 +35,7 @@ let tasasConfigSchema = new Schema({
   tipoTasa: {
     type: String,
     required: true,
-    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', 'tasaActivaTnaBNA', 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaPasivaBP', 'tasaActivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares', 'tasaPasivaBCRA27802'],
+    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', 'tasaActivaTnaBNA', 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaPasivaBP', 'tasaActivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares', 'tasaPasivaBCRA27802'],
     unique: true
   },
   fechaInicio: {
@@ -80,6 +80,24 @@ let tasasConfigSchema = new Schema({
   },
   // Fecha oficial en que la tasa dejó de actualizarse (opcional, informativa)
   fechaFin: {
+    type: Date
+  },
+  // Vigencia jurídica (la lee el motor de intereses del hub, services/tasasCalculoService.js).
+  // Una tasa no vigente se sigue ofreciendo, pero el cálculo devuelve `avisoVigencia`.
+  vigente: {
+    type: Boolean,
+    default: true
+  },
+  avisoVigencia: {
+    type: String
+  },
+  norma: {
+    type: String
+  },
+  vigenciaDesde: {
+    type: Date
+  },
+  vigenciaHasta: {
     type: Date
   },
   // Lista de errores de scraping relacionados con esta tasa

@@ -121,6 +121,7 @@ exports.getUltimosTasasValues = async (req, res) => {
       'cer',
       'icl',
       'tasaActivaCNAT2601',
+      'tasaActivaCNAT2630',
       'tasaActivaCNAT2658',
       'tasaActivaCNAT2764',
       'tasaActivaTnaBNA',
@@ -174,6 +175,7 @@ exports.getUltimaTasaHastaFecha = async (tipoTasa, fechaMaxima = null, opciones 
       'cer',
       'icl',
       'tasaActivaCNAT2601',
+      'tasaActivaCNAT2630',
       'tasaActivaCNAT2658',
       'tasaPasivaBCRA27802',
     ];
@@ -408,6 +410,7 @@ exports.obtenerRangoFechasFaltantes = async (tipoTasa, opciones = {}) => {
       'cer',
       'icl',
       'tasaActivaCNAT2601',
+      'tasaActivaCNAT2630',
       'tasaActivaCNAT2658',
       'tasaActivaCNAT2764',
       'tasaActivaTnaBNA',
@@ -888,7 +891,7 @@ exports.consultarPorFechas = async (req, res) => {
     // Verificar que el campo solicitado sea válido
     const camposValidos = [
       'tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA',
-      'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
+      'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
       'tasaPasivaBCRA27802',
     ];
 
@@ -1061,7 +1064,7 @@ exports.actualizarValorDirecto = async (req, res) => {
 
     const camposValidos = [
       'tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA',
-      'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2658',
+      'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658',
       'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
       'tasaPasivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares',
       'tasaPasivaBCRA27802',

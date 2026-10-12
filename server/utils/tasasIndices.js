@@ -13,6 +13,7 @@ const TIPO_INDICE_POR_TASA = {
   tasaActivaBNA: 'interesDiario',
   tasaActivaTnaBNA: 'interesDiario',
   tasaActivaCNAT2601: 'interesDiario',
+  tasaActivaCNAT2630: 'interesDiario',
   tasaActivaCNAT2658: 'interesDiario',
   tasaActivaCNAT2764: 'interesDiario',
   tasaPasivaBP: 'interesDiario',

@@ -34,6 +34,9 @@ let tasasSchema = new Schema({
   tasaActivaCNAT2601: {
     type: Number
   },
+  tasaActivaCNAT2630: {
+    type: Number
+  },
   tasaActivaCNAT2658: {
     type: Number
   },
@@ -67,6 +70,7 @@ let tasasSchema = new Schema({
       cer:                 { type: String },
       icl:                 { type: String },
       tasaActivaCNAT2601:  { type: String },
+      tasaActivaCNAT2630:  { type: String },
       tasaActivaCNAT2658:  { type: String },
       tasaActivaCNAT2764:  { type: String },
       tasaActivaTnaBNA:    { type: String },
@@ -128,6 +132,7 @@ tasasSchema.pre('save', async function () {
       if (this.cer !== undefined) existingDoc.cer = this.cer;
       if (this.icl !== undefined) existingDoc.icl = this.icl;
       if (this.tasaActivaCNAT2601 !== undefined) existingDoc.tasaActivaCNAT2601 = this.tasaActivaCNAT2601;
+      if (this.tasaActivaCNAT2630 !== undefined) existingDoc.tasaActivaCNAT2630 = this.tasaActivaCNAT2630;
       if (this.tasaActivaCNAT2658 !== undefined) existingDoc.tasaActivaCNAT2658 = this.tasaActivaCNAT2658;
       if (this.tasaActivaTnaBNA !== undefined) existingDoc.tasaActivaTnaBNA = this.tasaActivaTnaBNA;
       if (this.tasaPasivaBP !== undefined) existingDoc.tasaPasivaBP = this.tasaPasivaBP;
