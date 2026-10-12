@@ -612,9 +612,14 @@ exports.actualizarTasa = async (data, tipoTasa, calcularValor, tasasAdicionales 
     const resultadoOriginal = await guardarOActualizarTasasMultiples(fecha, valoresParaGuardar, fuentes);
     resultados.push(resultadoOriginal);
 
-    // Si la fecha es anterior a la actual, también guardar/actualizar con la fecha actual
+    // Si la fecha es anterior a la actual, también guardar/actualizar con la fecha actual.
+    // Es un arrastre de la publicación anterior (correcto en días sin publicación, provisorio en
+    // días hábiles): se marca la fuente para que la conciliación diaria con CPACF lo revise.
     if (esAnterior) {
-      const resultadoActual = await guardarOActualizarTasasMultiples(fechaActual, valoresParaGuardar, fuentes);
+      const fuentesArrastre = Object.fromEntries(
+        Object.entries(fuentes).map(([campo, f]) => [campo, `${f} (arrastre del ${moment(fecha).utc().format('DD/MM/YYYY')})`])
+      );
+      const resultadoActual = await guardarOActualizarTasasMultiples(fechaActual, valoresParaGuardar, fuentesArrastre);
       resultados.push(resultadoActual);
       logger.info(`También se actualizaron las tasas para la fecha actual ${moment(fechaActual).format('YYYY-MM-DD')}`);
     }

@@ -11,6 +11,7 @@ const { actualizarTasaActivaBNAConReintentos } = require('../scrapers/tasas/bnaS
 const { mainBnaPasivaService } = require("../scrapers/tasas/bnaProcesadorPDF");
 const { getCurrentRateAndSave, findMissingDataServiceBcra, actualizarSerieTNA } = require("../scrapers/tasas/bcraService");
 const { actualizarTodas: actualizarIndicesMensuales } = require("../scrapers/tasas/indicesMensualesService");
+const { conciliarUltimosDias } = require("../scrapers/tasas/conciliacionCPACFService");
 const { findMissingDataColegio, rectificarUltimasFechas } = require('../scrapers/tasas/colegioService');
 const { fillAllGaps } = require('../scrapers/tasas/cpacfGapFillerService');
 const { programarVerificacionTasas } = require('../../utils/verificadorTasas');
@@ -445,6 +446,13 @@ function initializeTasks() {
     cronConfig.indicesMensuales.actualizacion,
     () => actualizarIndicesMensuales(),
     'Series mensuales (inflación BCRA, RIPTE, IPC, SMVM, haber mínimo) a IndicesMensuales'
+  );
+
+  scheduleTask(
+    'conciliacion-cpacf',
+    cronConfig.conciliacionCPACF.diaria,
+    () => conciliarUltimosDias(20),
+    'Conciliación con CPACF de los últimos 20 días (2658, 2764, TNA activa BNA, pasiva BNA)'
   );
 
   // Tareas Colegio
