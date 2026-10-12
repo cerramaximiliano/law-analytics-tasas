@@ -2,7 +2,8 @@ const Tasas = require("../models/tasas");
 const TasasConfig = require("../models/tasasConfig");
 const moment = require('moment');
 const logger = require('../utils/logger');
-const { getTipoIndice } = require('../utils/tasasIndices');
+const { getTipoIndice, getConfigCatalogo, CATALOGO_TASAS } = require('../utils/tasasIndices');
+const { computarPeriodosMensuales } = require('../utils/periodosMensuales');
 
 
 /**
@@ -17,14 +18,15 @@ const { getTipoIndice } = require('../utils/tasasIndices');
 exports.getTasasStatus = async (req, res) => {
     try {
         const hoy = moment.utc().startOf('day').toDate();
-        const configs = await TasasConfig.find({ discontinuada: { $ne: true } }).select('tipoTasa fechaUltima');
+        const configs = await TasasConfig.find({ discontinuada: { $ne: true } }).select('tipoTasa fechaUltima atrasoPublicacionDias');
 
+        // Una serie está al día si su último dato llega a hoy menos el atraso normal de su fuente
+        const alDia = c => c.fechaUltima &&
+            moment.utc(c.fechaUltima).startOf('day').isSameOrAfter(moment.utc(hoy).subtract(c.atrasoPublicacionDias || 0, 'days'));
         const total = configs.length;
-        const actualizadas = configs.filter(c =>
-            c.fechaUltima && moment.utc(c.fechaUltima).startOf('day').isSameOrAfter(moment.utc(hoy))
-        ).length;
+        const actualizadas = configs.filter(alDia).length;
         const desactualizadas = configs
-            .filter(c => !c.fechaUltima || moment.utc(c.fechaUltima).startOf('day').isBefore(moment.utc(hoy)))
+            .filter(c => !alDia(c))
             .map(c => ({
                 tipoTasa: c.tipoTasa,
                 fechaUltima: c.fechaUltima ? moment.utc(c.fechaUltima).format('YYYY-MM-DD') : null,
@@ -46,6 +48,54 @@ exports.getTasasStatus = async (req, res) => {
     }
 };
 
+/** Copia en la configuración los campos del catálogo (fuente de verdad de las series nuevas). */
+function aplicarCatalogo(config, catalogo) {
+    for (const k of ['tipoIndice', 'periodicidad', 'coleccion', 'fuente', 'unidadOrigen', 'unidadAlmacenada', 'atrasoPublicacionDias']) {
+        if (catalogo[k] !== undefined) config[k] = catalogo[k];
+    }
+    if (catalogo.descripcion && !config.descripcion) config.descripcion = catalogo.descripcion;
+}
+
+/**
+ * Verificación de series mensuales (colección IndicesMensuales): rango, meses faltantes y
+ * último mes completo. Mismo formato de respuesta que la verificación diaria, en meses.
+ */
+async function verificarPeriodosMensuales(tipoTasa, catalogo) {
+    const IndicesMensuales = require('../models/indicesMensuales');
+    const docs = await IndicesMensuales.find({ serie: tipoTasa }).select('periodo').lean();
+    const r = computarPeriodosMensuales(docs.map(d => d.periodo));
+    if (!r) {
+        throw new Error(`No hay datos disponibles para el tipo de tasa: ${tipoTasa}`);
+    }
+    let config = await TasasConfig.findOne({ tipoTasa });
+    if (!config) {
+        config = new TasasConfig({ tipoTasa, fechaInicio: r.fechaInicio, fechaUltima: r.fechaUltima });
+    }
+    config.fechaInicio = r.fechaInicio;
+    config.fechaUltima = r.fechaUltima;
+    config.fechaUltimaCompleta = r.fechaUltimaCompleta;
+    config.fechasFaltantes = r.fechasFaltantes;
+    config.ultimoPeriodo = r.ultimo;
+    config.ultimaVerificacion = new Date();
+    aplicarCatalogo(config, catalogo);
+    await config.save();
+
+    return {
+        tipoTasa,
+        periodicidad: 'mensual',
+        fechaInicio: config.fechaInicio,
+        fechaUltima: config.fechaUltima,
+        fechaUltimaCompleta: config.fechaUltimaCompleta,
+        ultimoPeriodo: r.ultimo,
+        totalDias: r.totalMeses,
+        totalMeses: r.totalMeses,
+        diasExistentes: r.totalMeses - r.periodosFaltantes.length,
+        diasFaltantes: r.periodosFaltantes.length,
+        fechasFaltantes: r.fechasFaltantes.map((fecha, i) => ({ fecha, fechaFormateada: r.periodosFaltantes[i] })),
+        ultimaVerificacion: config.ultimaVerificacion
+    };
+}
+
 exports.verificarFechasFaltantes = async (tipoTasa) => {
     try {
         // Validar el tipo de tasa
@@ -65,10 +115,21 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
             'tasaActivaBPDolares',
             'tasaPasivaBPDolares',
             'tasaPasivaBCRA27802',
+            'uva',
+            'uvi',
+            'tasaBADLAR',
+            'tasaTAMAR',
+            'tasaTM20',
         ];
 
-        if (!tiposValidos.includes(tipoTasa)) {
+        if (!tiposValidos.includes(tipoTasa) && !CATALOGO_TASAS[tipoTasa]) {
             throw new Error(`Tipo de tasa inválido: ${tipoTasa}`);
+        }
+
+        // Las series del catálogo traen su configuración (periodicidad, fuente, unidades, atraso)
+        const catalogo = getConfigCatalogo(tipoTasa);
+        if (catalogo.periodicidad === 'mensual') {
+            return await verificarPeriodosMensuales(tipoTasa, catalogo);
         }
 
         // Paso 1: Obtener la configuración existente o crearla si no existe
@@ -174,6 +235,7 @@ exports.verificarFechasFaltantes = async (tipoTasa) => {
         if (!config.tipoIndice) {
             config.tipoIndice = getTipoIndice(tipoTasa);
         }
+        aplicarCatalogo(config, catalogo);
         await config.save();
 
         // Preparar respuesta
@@ -225,6 +287,11 @@ exports.actualizarFechasFaltantes = async (tipoTasa, fechasProcesadas = []) => {
             'tasaActivaBPDolares',
             'tasaPasivaBPDolares',
             'tasaPasivaBCRA27802',
+            'uva',
+            'uvi',
+            'tasaBADLAR',
+            'tasaTAMAR',
+            'tasaTM20',
         ];
 
         if (!tiposValidos.includes(tipoTasa)) {
@@ -399,7 +466,7 @@ exports.obtenerTasasConfig = async (req, res) => {
     try {
         // Obtener solo las tasas activas
         const tasas = await TasasConfig.find({ activa: true })
-            .select('tipoTasa descripcion fechaInicio fechaUltima fechaUltimaCompleta fechasFaltantes discontinuada')
+            .select('tipoTasa descripcion fechaInicio fechaUltima fechaUltimaCompleta fechasFaltantes discontinuada periodicidad coleccion fuente unidadOrigen unidadAlmacenada atrasoPublicacionDias ultimoPeriodo')
             .sort('descripcion');
 
         // Transformar los datos para el SelectField
@@ -411,6 +478,13 @@ exports.obtenerTasasConfig = async (req, res) => {
             fechaUltimaCompleta: tasa.fechaUltimaCompleta,
             fechasFaltantes: tasa.fechasFaltantes ?? [],
             discontinuada: !!tasa.discontinuada,
+            periodicidad: tasa.periodicidad || 'diaria',
+            coleccion: tasa.coleccion || 'tasas',
+            fuente: tasa.fuente,
+            unidadOrigen: tasa.unidadOrigen,
+            unidadAlmacenada: tasa.unidadAlmacenada,
+            atrasoPublicacionDias: tasa.atrasoPublicacionDias || 0,
+            ultimoPeriodo: tasa.ultimoPeriodo,
         }));
 
         return res.status(200).json(tasasFormateadas);
@@ -436,6 +510,14 @@ function formatearNombreTasa(tipoTasa) {
         'tasaActivaBPDolares': 'Tasa Activa Banco Provincia en Dólares',
         'tasaPasivaBPDolares': 'Tasa Pasiva Banco Provincia en Dólares',
         'tasaPasivaBCRA27802': 'Tasa Pasiva BCRA Ley 27.802 art.55(a)',
+        'uva': 'UVA (BCRA)',
+        'uvi': 'UVI (BCRA)',
+        'tasaBADLAR': 'Tasa BADLAR bancos privados (TNA)',
+        'tasaTAMAR': 'Tasa TAMAR bancos privados (TNA)',
+        'tasaTM20': 'Tasa TM20 bancos privados (TNA)',
+        'inflacionMensual': 'Inflación mensual (IPC INDEC)',
+        'ripte': 'RIPTE',
+        'ipc': 'IPC INDEC (nivel general)',
     };
 
     return formateo[tipoTasa] || tipoTasa;

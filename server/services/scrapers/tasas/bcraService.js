@@ -1,7 +1,7 @@
 const TasasConfig = require("../../../models/tasasConfig");
 const Tasas = require("../../../models/tasas");
 const { verificarFechasFaltantes } = require('../../../controllers/tasasConfigController')
-const { getTipoIndice } = require('../../../utils/tasasIndices');
+const { getTipoIndice, getConfigCatalogo } = require('../../../utils/tasasIndices');
 const axios = require("axios")
 const logger = require('../../../utils/logger');
 const moment = require("moment")
@@ -117,6 +117,7 @@ async function actualizarConfiguracion(tipoTasa) {
         .select('fecha');
 
     const nuevaConfig = new TasasConfig({
+        ...getConfigCatalogo(tipoTasa),
         tipoTasa,
         fechaInicio: moment.utc(primeraFecha.fecha).startOf('day').toDate(),
         fechaUltima: fechaUltima,
@@ -665,4 +666,62 @@ exports.findMissingDataServiceBcra = async (tipoTasa, idVariable) => {
     }
 
 
+};
+/**
+ * Actualiza una serie de TNA de días hábiles (BADLAR, TAMAR, TM20): consulta el BCRA,
+ * guarda TNA/365 por día y completa los días sin publicación (ver seriesTNA.js).
+ *
+ * @param {String} tipoTasa - tasaBADLAR | tasaTAMAR | tasaTM20
+ * @param {Object} [opciones]
+ * @param {String|Date} [opciones.desde] - por defecto, 15 días antes del último dato guardado
+ * @param {String|Date} [opciones.hasta] - por defecto, hoy
+ */
+exports.actualizarSerieTNA = async (tipoTasa, opciones = {}) => {
+    const { SERIES_TNA, FUENTE_PUBLICADO, FUENTE_RELLENO, expandirDiasHabiles } = require('./seriesTNA');
+    const serie = SERIES_TNA[tipoTasa];
+    if (!serie) {
+        return { status: 'error', message: `${tipoTasa} no es una serie de TNA de días hábiles` };
+    }
+    try {
+        const hasta = moment.utc(opciones.hasta || undefined).startOf('day');
+        let desde;
+        if (opciones.desde) {
+            desde = moment.utc(opciones.desde).startOf('day');
+        } else {
+            const ultimo = await Tasas.findOne({ [tipoTasa]: { $ne: null } }).sort({ fecha: -1 }).select('fecha').lean();
+            desde = ultimo ? moment.utc(ultimo.fecha).subtract(15, 'days') : hasta.clone().subtract(30, 'days');
+        }
+        // Se pide desde unos días antes para tener un día publicado con el que completar el comienzo
+        const consulta = await consultarBCRA(serie.idVariable, desde.clone().subtract(10, 'days').toDate(), hasta.toDate(), tipoTasa);
+        if (consulta.status !== 'success') {
+            return { status: 'error', message: consulta.message };
+        }
+        const dias = expandirDiasHabiles(consulta.data, { hasta: hasta.toDate() })
+            .filter((d) => !moment.utc(d.fecha).isBefore(desde));
+        if (!dias.length) {
+            return { status: 'warning', message: `Sin datos de ${tipoTasa} entre ${desde.format('YYYY-MM-DD')} y ${hasta.format('YYYY-MM-DD')}` };
+        }
+        const ops = dias.map((d) => ({
+            updateOne: {
+                filter: { fecha: moment.utc(d.fecha).startOf('day').toDate() },
+                update: { $set: { [tipoTasa]: d.valor, [`fuentes.${tipoTasa}`]: d.relleno ? FUENTE_RELLENO : FUENTE_PUBLICADO } },
+                upsert: true,
+            },
+        }));
+        const r = await Tasas.bulkWrite(ops, { ordered: false });
+        await actualizarConfiguracion(tipoTasa);
+        // Recalcula rango, huecos y campos del catálogo (periodicidad diariaHabil, fuente, atraso)
+        await verificarFechasFaltantes(tipoTasa);
+        const rellenos = dias.filter((d) => d.relleno).length;
+        logger.info(`${tipoTasa}: ${dias.length} días guardados (${rellenos} completados sin publicación), ${r.upsertedCount} documentos nuevos`);
+        return {
+            status: 'success',
+            message: `${tipoTasa}: ${dias.length} días (${rellenos} completados)`,
+            data: { dias: dias.length, rellenos, nuevos: r.upsertedCount, modificados: r.modifiedCount },
+        };
+    } catch (error) {
+        logger.error(`Error en actualizarSerieTNA ${tipoTasa}: ${error.message}`);
+        await registrarErrorTasa(tipoTasa, `bcra-tna-${tipoTasa}`, error.message);
+        return { status: 'error', message: error.message };
+    }
 };

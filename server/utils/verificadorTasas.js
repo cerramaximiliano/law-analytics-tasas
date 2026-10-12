@@ -68,9 +68,11 @@ async function verificarTasasActualizadas(options = {}) {
             // Una tasa está actualizada si:
             // 1. Su fecha de última actualización es hoy (mismo día), O
             // 2. Su fecha de última actualización es futura (días negativos)
+            // 3. Está dentro del atraso normal de publicación de su fuente
             const estaActualizada =
                 moment(fechaUltima).isSameOrAfter(fechaActual, 'day') ||
-                diasDesde < 0; // Fecha futura
+                diasDesde < 0 || // Fecha futura
+                diasDesde <= (config.atrasoPublicacionDias || 0); // atraso normal de la fuente (TasasConfig)
 
             // Guardar resultado con información adicional
             const estadoTasa = {

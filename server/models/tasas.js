@@ -61,6 +61,21 @@ let tasasSchema = new Schema({
   tasaPasivaBCRA27802: {
     type: Number
   },
+  uva: {
+    type: Number
+  },
+  uvi: {
+    type: Number
+  },
+  tasaBADLAR: {
+    type: Number
+  },
+  tasaTAMAR: {
+    type: Number
+  },
+  tasaTM20: {
+    type: Number
+  },
   // Fuente de origen para cada campo (servicio que lo extrajo)
   fuentes: {
     type: {
@@ -79,6 +94,11 @@ let tasasSchema = new Schema({
       tasaActivaBPDolares: { type: String },
       tasaPasivaBPDolares: { type: String },
       tasaPasivaBCRA27802: { type: String },
+      uva: { type: String },
+      uvi: { type: String },
+      tasaBADLAR: { type: String },
+      tasaTAMAR: { type: String },
+      tasaTM20: { type: String },
     },
     _id: false,
     default: {},
@@ -140,6 +160,11 @@ tasasSchema.pre('save', async function () {
       if (this.tasaActivaBPDolares !== undefined) existingDoc.tasaActivaBPDolares = this.tasaActivaBPDolares;
       if (this.tasaPasivaBPDolares !== undefined) existingDoc.tasaPasivaBPDolares = this.tasaPasivaBPDolares;
       if (this.tasaPasivaBCRA27802 !== undefined) existingDoc.tasaPasivaBCRA27802 = this.tasaPasivaBCRA27802;
+      if (this.uva !== undefined) existingDoc.uva = this.uva;
+      if (this.uvi !== undefined) existingDoc.uvi = this.uvi;
+      if (this.tasaBADLAR !== undefined) existingDoc.tasaBADLAR = this.tasaBADLAR;
+      if (this.tasaTAMAR !== undefined) existingDoc.tasaTAMAR = this.tasaTAMAR;
+      if (this.tasaTM20 !== undefined) existingDoc.tasaTM20 = this.tasaTM20;
 
       // Fusionar fuentes al hacer merge de documentos
       if (this.fuentes) {

@@ -35,7 +35,7 @@ let tasasConfigSchema = new Schema({
   tipoTasa: {
     type: String,
     required: true,
-    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', 'tasaActivaTnaBNA', 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaPasivaBP', 'tasaActivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares', 'tasaPasivaBCRA27802'],
+    enum: ['tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA', 'tasaActivaTnaBNA', 'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaPasivaBP', 'tasaActivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares', 'tasaPasivaBCRA27802', 'uva', 'uvi', 'tasaBADLAR', 'tasaTAMAR', 'tasaTM20', 'inflacionMensual', 'ripte', 'ipc'],
     unique: true
   },
   fechaInicio: {
@@ -59,7 +59,7 @@ let tasasConfigSchema = new Schema({
   //   'interesDiario'       → sumatoria de TNAs diarias
   tipoIndice: {
     type: String,
-    enum: ['indexado', 'interesDiario', 'porcentajeAcumulado']
+    enum: ['indexado', 'interesDiario', 'porcentajeAcumulado', 'variacionMensual', 'indiceMensual']
   },
   ultimaVerificacion: {
     type: Date,
@@ -81,6 +81,36 @@ let tasasConfigSchema = new Schema({
   // Fecha oficial en que la tasa dejó de actualizarse (opcional, informativa)
   fechaFin: {
     type: Date
+  },
+  // Configuración por serie (catálogo en admin/server/utils/tasasIndices.js). Define cómo se
+  // computan rango, faltantes y atraso según cómo publica la fuente.
+  periodicidad: {
+    type: String,
+    enum: ['diaria', 'diariaHabil', 'mensual'],
+    default: 'diaria'
+  },
+  coleccion: {
+    type: String,
+    enum: ['tasas', 'indicesmensuales'],
+    default: 'tasas'
+  },
+  fuente: {
+    type: String
+  },
+  unidadOrigen: {
+    type: String
+  },
+  unidadAlmacenada: {
+    type: String
+  },
+  // Días de atraso normales de la fuente: dentro de ese margen la serie no se considera desactualizada
+  atrasoPublicacionDias: {
+    type: Number,
+    default: 0
+  },
+  // Último mes publicado (YYYY-MM), solo series mensuales
+  ultimoPeriodo: {
+    type: String
   },
   // Vigencia jurídica (la lee el motor de intereses del hub, services/tasasCalculoService.js).
   // Una tasa no vigente se sigue ofreciendo, pero el cálculo devuelve `avisoVigencia`.

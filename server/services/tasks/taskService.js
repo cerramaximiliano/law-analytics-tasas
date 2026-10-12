@@ -9,7 +9,8 @@ const cronConfig = require('../../config/cronConfig');
 const { mainConsejoService, findMissingDataService } = require('../scrapers/tasas/consejoService');
 const { actualizarTasaActivaBNAConReintentos } = require('../scrapers/tasas/bnaService');
 const { mainBnaPasivaService } = require("../scrapers/tasas/bnaProcesadorPDF");
-const { getCurrentRateAndSave, findMissingDataServiceBcra } = require("../scrapers/tasas/bcraService");
+const { getCurrentRateAndSave, findMissingDataServiceBcra, actualizarSerieTNA } = require("../scrapers/tasas/bcraService");
+const { actualizarTodas: actualizarIndicesMensuales } = require("../scrapers/tasas/indicesMensualesService");
 const { findMissingDataColegio, rectificarUltimasFechas } = require('../scrapers/tasas/colegioService');
 const { fillAllGaps } = require('../scrapers/tasas/cpacfGapFillerService');
 const { programarVerificacionTasas } = require('../../utils/verificadorTasas');
@@ -398,6 +399,52 @@ function initializeTasks() {
     cronConfig.bcra.tasaPasiva27802.busquedaFechas,
     () => findMissingDataServiceBcra("tasaPasivaBCRA27802", "1198"),
     'Búsqueda de fechas sin datos y scraping de tasa pasiva Ley 27.802 art.55(a) desde API BCRA'
+  );
+
+  scheduleTask(
+    'bcra-uva',
+    cronConfig.bcra.uva.scraping,
+    () => getCurrentRateAndSave("uva", "31"),
+    'Búsqueda de último dato de API BCRA - UVA'
+  );
+
+  scheduleTask(
+    'búsqueda-fechas-uva',
+    cronConfig.bcra.uva.busquedaFechas,
+    () => findMissingDataServiceBcra("uva", "31"),
+    'Búsqueda de fechas sin datos de UVA desde API BCRA'
+  );
+
+  scheduleTask(
+    'bcra-uvi',
+    cronConfig.bcra.uvi.scraping,
+    () => getCurrentRateAndSave("uvi", "32"),
+    'Búsqueda de último dato de API BCRA - UVI'
+  );
+
+  scheduleTask(
+    'búsqueda-fechas-uvi',
+    cronConfig.bcra.uvi.busquedaFechas,
+    () => findMissingDataServiceBcra("uvi", "32"),
+    'Búsqueda de fechas sin datos de UVI desde API BCRA'
+  );
+
+  scheduleTask(
+    'bcra-series-tna',
+    cronConfig.bcra.seriesTNA.scraping,
+    async () => {
+      for (const tipoTasa of ['tasaBADLAR', 'tasaTAMAR', 'tasaTM20']) {
+        await actualizarSerieTNA(tipoTasa);
+      }
+    },
+    'BADLAR, TAMAR y TM20 (TNA de días hábiles, con relleno de días sin publicación) desde API BCRA'
+  );
+
+  scheduleTask(
+    'indices-mensuales',
+    cronConfig.indicesMensuales.actualizacion,
+    () => actualizarIndicesMensuales(),
+    'Series mensuales (inflación BCRA, RIPTE, IPC, SMVM, haber mínimo) a IndicesMensuales'
   );
 
   // Tareas Colegio

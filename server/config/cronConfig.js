@@ -36,7 +36,26 @@ const cronConfig = {
         tasaPasiva27802: {
             scraping: '40 7,9,11,13,15,21 * * *',       // Obtener último dato API BCRA - Tasa Pasiva Ley 27.802 art.55(a)
             busquedaFechas: '45 7 * * *'                // Búsqueda de fechas faltantes
+        },
+        uva: {
+            scraping: '42 7,9,11,13,15,21 * * *',       // Obtener último dato API BCRA - UVA (31)
+            busquedaFechas: '47 7 * * *'
+        },
+        uvi: {
+            scraping: '44 7,9,11,13,15,21 * * *',       // Obtener último dato API BCRA - UVI (32)
+            busquedaFechas: '49 7 * * *'
+        },
+        // TNA de días hábiles (BADLAR, TAMAR, TM20): una sola tarea que consulta los últimos
+        // días, guarda TNA/365 y completa días sin publicación (bcraService.actualizarSerieTNA)
+        seriesTNA: {
+            scraping: '50 9,13,21 * * *'
         }
+    },
+
+    // Series mensuales (inflación BCRA, RIPTE, IPC, SMVM, haber mínimo) → IndicesMensuales.
+    // Una vez por día alcanza: se publican una vez por mes y se releen los últimos 12 meses.
+    indicesMensuales: {
+        actualizacion: '10 10 * * *'
     },
 
     // Configuración de horarios para tareas Colegio

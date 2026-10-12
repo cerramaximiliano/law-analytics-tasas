@@ -126,6 +126,11 @@ exports.getUltimosTasasValues = async (req, res) => {
       'tasaActivaCNAT2764',
       'tasaActivaTnaBNA',
       'tasaPasivaBCRA27802',
+      'uva',
+      'uvi',
+      'tasaBADLAR',
+      'tasaTAMAR',
+      'tasaTM20',
     ];
 
     const result = {};
@@ -178,6 +183,11 @@ exports.getUltimaTasaHastaFecha = async (tipoTasa, fechaMaxima = null, opciones 
       'tasaActivaCNAT2630',
       'tasaActivaCNAT2658',
       'tasaPasivaBCRA27802',
+      'uva',
+      'uvi',
+      'tasaBADLAR',
+      'tasaTAMAR',
+      'tasaTM20',
     ];
 
     if (!tiposValidos.includes(tipoTasa)) {
@@ -415,6 +425,11 @@ exports.obtenerRangoFechasFaltantes = async (tipoTasa, opciones = {}) => {
       'tasaActivaCNAT2764',
       'tasaActivaTnaBNA',
       'tasaPasivaBCRA27802',
+      'uva',
+      'uvi',
+      'tasaBADLAR',
+      'tasaTAMAR',
+      'tasaTM20',
     ];
 
     if (!tiposValidos.includes(tipoTasa)) {
@@ -893,6 +908,11 @@ exports.consultarPorFechas = async (req, res) => {
       'tasaPasivaBNA', 'tasaPasivaBCRA', 'tasaActivaBNA',
       'cer', 'icl', 'tasaActivaCNAT2601', 'tasaActivaCNAT2630', 'tasaActivaCNAT2658', 'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
       'tasaPasivaBCRA27802',
+      'uva',
+      'uvi',
+      'tasaBADLAR',
+      'tasaTAMAR',
+      'tasaTM20',
     ];
 
     if (!camposValidos.includes(campo)) {
@@ -1068,6 +1088,11 @@ exports.actualizarValorDirecto = async (req, res) => {
       'tasaActivaCNAT2764', 'tasaActivaTnaBNA',
       'tasaPasivaBP', 'tasaActivaBPDolares', 'tasaPasivaBPDolares',
       'tasaPasivaBCRA27802',
+      'uva',
+      'uvi',
+      'tasaBADLAR',
+      'tasaTAMAR',
+      'tasaTM20',
     ];
 
     if (!camposValidos.includes(campo)) {
