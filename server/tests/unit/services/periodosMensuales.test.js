@@ -28,3 +28,22 @@ describe('periodosMensuales - computarPeriodosMensuales', () => {
 		assert.strictEqual(computarPeriodosMensuales(['x', '2026-1']), null);
 	});
 });
+
+describe('indicesMensualesService - completarValoresVigentes', () => {
+	const { completarValoresVigentes } = require('../../../services/scrapers/tasas/indicesMensualesService');
+	it('repite el valor vigente en los meses sin cambio y marca el origen', () => {
+		const r = completarValoresVigentes([
+			{ periodo: '2026-04', valor: 300 },
+			{ periodo: '2026-01', valor: 100 },
+		]);
+		assert.deepStrictEqual(r, [
+			{ periodo: '2026-01', valor: 100 },
+			{ periodo: '2026-02', valor: 100, rellenoDesde: '2026-01' },
+			{ periodo: '2026-03', valor: 100, rellenoDesde: '2026-01' },
+			{ periodo: '2026-04', valor: 300 },
+		]);
+	});
+	it('sin datos devuelve vacío', () => {
+		assert.deepStrictEqual(completarValoresVigentes([]), []);
+	});
+});

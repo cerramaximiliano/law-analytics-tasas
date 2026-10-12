@@ -58,6 +58,30 @@ async function conReintentos(fn, intentos = 3) {
 	throw ultimo;
 }
 
+/**
+ * Series de 'valor' (monto vigente): completa los meses sin publicación repitiendo el último
+ * valor, desde el primer período hasta el último publicado (puede ser futuro si ya se decretó).
+ * @returns {Array<{periodo:string, valor:number, rellenoDesde?:string}>}
+ */
+function completarValoresVigentes(datos) {
+	const orden = [...datos].sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
+	if (!orden.length) return [];
+	const porPeriodo = new Map(orden.map((d) => [d.periodo, d]));
+	const out = [];
+	let vigente = orden[0];
+	const ultimo = orden[orden.length - 1].periodo;
+	for (let m = moment.utc(orden[0].periodo, 'YYYY-MM'); m.format('YYYY-MM') <= ultimo; m.add(1, 'month')) {
+		const p = m.format('YYYY-MM');
+		if (porPeriodo.has(p)) {
+			vigente = porPeriodo.get(p);
+			out.push({ periodo: p, valor: vigente.valor });
+		} else {
+			out.push({ periodo: p, valor: vigente.valor, rellenoDesde: vigente.periodo });
+		}
+	}
+	return out;
+}
+
 /** @returns {Array<{periodo:string, valor:number}>} */
 async function leerBCRA(id, desde, hasta) {
 	const url = `https://api.bcra.gob.ar/estadisticas/v4.0/monetarias/${id}?desde=${desde}&hasta=${hasta}&limit=3000`;
@@ -90,7 +114,8 @@ async function actualizarSerieMensual(serie, opciones = {}) {
 		const datos = cfg.origen === 'bcra'
 			? await leerBCRA(cfg.id, desde, hoy.format('YYYY-MM-DD'))
 			: await leerDatosGob(cfg.id, desde);
-		const validos = datos.filter((d) => /^\d{4}-\d{2}$/.test(d.periodo) && Number.isFinite(d.valor)).sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
+		let validos = datos.filter((d) => /^\d{4}-\d{2}$/.test(d.periodo) && Number.isFinite(d.valor)).sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
+		if (cfg.tipo === 'valor') validos = completarValoresVigentes(validos);
 		if (!validos.length) return { status: 'warning', message: `${serie}: sin datos desde ${desde}` };
 
 		const provisorios = new Set(cfg.provisoriosUltimos ? validos.slice(-cfg.provisoriosUltimos).map((d) => d.periodo) : []);
@@ -100,7 +125,8 @@ async function actualizarSerieMensual(serie, opciones = {}) {
 					updateOne: {
 						filter: { serie, periodo: d.periodo },
 						update: {
-							$set: { valor: d.valor, tipo: cfg.tipo, fuente: cfg.fuente, provisorio: provisorios.has(d.periodo), publicadoEn: new Date() },
+							$set: { valor: d.valor, tipo: cfg.tipo, fuente: cfg.fuente, provisorio: provisorios.has(d.periodo), publicadoEn: new Date(), ...(d.rellenoDesde ? { rellenoDesde: d.rellenoDesde } : {}) },
+							...(d.rellenoDesde ? {} : { $unset: { rellenoDesde: '' } }),
 						},
 						upsert: true,
 					},
@@ -133,4 +159,4 @@ async function actualizarTodas(opciones = {}) {
 	return resultados;
 }
 
-module.exports = { SERIES_MENSUALES, actualizarSerieMensual, actualizarTodas, leerBCRA, leerDatosGob };
+module.exports = { SERIES_MENSUALES, actualizarSerieMensual, actualizarTodas, leerBCRA, leerDatosGob, completarValoresVigentes };

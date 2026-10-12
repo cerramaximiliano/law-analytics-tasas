@@ -89,7 +89,10 @@ async function cargarTNA(tipoTasa, serie, desde, hoy) {
 			total += dias.length;
 			process.stdout.write(`  ${r.desde.slice(0, 4)}: ${datos.length}→${dias.length} `);
 		} else {
-			const res = await actualizarSerieTNA(tipoTasa, { desde: r.desde, hasta: r.hasta });
+			// Cada año arranca 7 días antes: así se completan los días sin publicación del cierre
+			// del año anterior (31/12), que quedan entre dos consultas.
+			const desdeSolapado = moment.utc(r.desde).subtract(7, 'days').format('YYYY-MM-DD');
+			const res = await actualizarSerieTNA(tipoTasa, { desde: desdeSolapado, hasta: r.hasta });
 			const n = res.data ? res.data.dias : 0;
 			total += n;
 			process.stdout.write(`  ${r.desde.slice(0, 4)}: ${n} `);

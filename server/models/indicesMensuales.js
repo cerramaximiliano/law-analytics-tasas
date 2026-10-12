@@ -18,6 +18,9 @@ const indicesMensualesSchema = new mongoose.Schema(
     fuente: { type: String, required: true },
     norma: { type: String },
     provisorio: { type: Boolean, default: false },
+    // Series de 'valor' (SMVM, haber mínimo): la fuente publica solo los meses con cambio; los
+    // meses intermedios repiten el valor vigente y guardan acá el período de origen.
+    rellenoDesde: { type: String },
     publicadoEn: { type: Date },
   },
   { timestamps: true, collection: 'indicesmensuales' }
