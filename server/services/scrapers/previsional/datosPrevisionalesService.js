@@ -41,6 +41,10 @@ const INFOLEG = 'https://servicios.infoleg.gob.ar/infolegInternet';
 const LISTAS_VINCULOS = { dnu274: 397577, ley24241: 639 };
 // Consejo del Salario: 3333 (desde 2014 aprox.) y 18 (nombre viejo, usado aún en 2022)
 const DEPENDENCIAS_CONSEJO_SMVM = [3333, 18];
+// Decretos de bono previsional: además de los vínculos, InfoLeg se busca por texto (tipo Decreto) año por año.
+// Algunos no aparecen ni así (Dec. 309/20, título "EMERGENCIA SANITARIA"): van fijos.
+const TEXTOS_BUSQUEDA_BONO = ['ingreso previsional', 'subsidio extraordinario', 'bono extraordinario previsional', 'ayuda economica previsional'];
+const DECRETOS_BONO_FIJOS = [{ id: 335821, texto: 'Decreto 309 / 2020 PODER EJECUTIVO NACIONAL (P.E.N.) EMERGENCIA SANITARIA SUBSIDIO EXTRAORDINARIO' }];
 const COLECCION = 'datosprevisionales';
 const COLECCION_AUDITORIA = 'datosprevisionales-sincronizaciones';
 const INICIO_MOVILIDAD_DNU274 = '2024-04';
@@ -62,6 +66,7 @@ const CAMPOS = {
 	topePC: 0.005,
 	bono: 0.005,
 	bonoNorma: null,
+	bonoEscalones: null,
 	salarioMVM: 0.005,
 	suplemento82SMVM: 0.005,
 	normaSMVM: null,
@@ -265,7 +270,7 @@ function mesesConAnio(fragmento) {
  */
 function parsearDecretoBono(html) {
 	const texto = htmlATexto(html);
-	const r = { norma: nombreNorma(texto, 'Decreto'), tipo: null, pagos: [], escalonado: false, errores: [] };
+	const r = { norma: nombreNorma(texto, 'Decreto'), tipo: null, pagos: [], escalonado: false, previsional: false, errores: [] };
 	const arts = articulos(texto);
 	const art1 = (arts.find((a) => a.numero === 1) || {}).texto || '';
 	const t1 = art1 || texto;
@@ -273,12 +278,17 @@ function parsearDecretoBono(html) {
 		: /ayuda econ[oó]mica/i.test(t1) ? 'ayuda económica previsional'
 			: /refuerzo/i.test(t1) ? 'refuerzo de ingreso previsional'
 				: /subsidio/i.test(t1) ? 'subsidio extraordinario' : null;
+	// Los subsidios de la AUH (Dec. 594/19) usan el mismo título: solo cuentan los que alcanzan a jubilados
+	const art2 = (arts.find((a) => a.numero === 2) || {}).texto || '';
+	r.previsional = /24\.241|PREVISIONAL|SIPA/i.test(art1 + art2);
 
-	// Cada "($ X) ... que se abonará(n) en el/los mes(es) de ..." define montos y meses
+	// Cada "($ X) ... que se abonará(n) [por única vez] en el/los mes(es) de ..." define montos y meses
 	const montos = montosEntreParentesis(t1);
-	const idxAbono = t1.search(/abonar[aá]n?\s+en/i);
+	const idxAbono = t1.search(/abonar[aá]n?\s+(?:por [uú]nica vez\s+)?en/i);
 	const meses = mesesConAnio(idxAbono >= 0 ? t1.slice(idxAbono) : t1);
-	if (montos.length === meses.length) meses.forEach((mes, i) => r.pagos.push({ mes, monto: montos[i] }));
+	// "se abonará por única vez en el mes de …": un solo pago (el Dec. 309/20 sigue con la AUH, que cita marzo)
+	if (/abonar[aá]n?\s+por [uú]nica vez/i.test(t1) && meses.length && montos.length) r.pagos.push({ mes: meses[0], monto: montos[0] });
+	else if (montos.length === meses.length) meses.forEach((mes, i) => r.pagos.push({ mes, monto: montos[i] }));
 	else if (montos.length === 1) meses.forEach((mes) => r.pagos.push({ mes, monto: montos[0] }));
 	else if (montos.length > 1 && meses.length && montos.length % meses.length === 0) {
 		// Varias cláusulas con el mismo monto por mes (Dec. 73/19, 218/21): uno por mes, en orden
@@ -286,11 +296,53 @@ function parsearDecretoBono(html) {
 	}
 	// Montos escalonados según el haber (refuerzos 2022–23): art. 3 con incisos a) y b)
 	const art3 = (arts.find((a) => a.numero === 3) || {}).texto || '';
-	r.escalonado = /\ba[.)]\s*PESOS/i.test(art3) && /\bb[.)]\s*PESOS/i.test(art3);
+	r.escalonado = /\ba[.)]\s*(?:PESOS|\(\s*\$)/i.test(art3) && /\bb[.)]\s*(?:PESOS|\(\s*\$)/i.test(art3);
+	const resto = arts.filter((a) => a.numero > 1).map((a) => a.texto).join(' ');
+	for (const pago of r.pagos) pago.escalones = escalonesBono(resto, pago);
 
 	if (!r.norma) r.errores.push('no se encontró el número de decreto');
 	if (!r.pagos.length) r.errores.push(`no se pudieron emparejar montos (${montos.length}) y meses (${meses.length})`);
 	return r;
+}
+
+/** Primer monto "($ X)" a partir de una posición. */
+function montoDesde(texto, i) {
+	const m = /\(\s*\$\s*([\d.]+(?:,\d{1,2})?)[^)]*\)/.exec(texto.slice(i));
+	return m ? { valor: parsearMonto(m[1]), fin: i + m.index + m[0].length } : null;
+}
+
+/**
+ * Escalones del bono de un mes: [{hasta, monto}]. Quien cobra hasta `hasta` recibe `monto`; por encima,
+ * lo necesario para llegar a `hasta + monto` (así lo redactan todos los decretos desde 2019).
+ * `hasta: null` = el haber mínimo del art. 125 de la ley 24.241 vigente en el mes.
+ * Si el decreto fija montos distintos por mes (Dec. 282/23), se usa el bloque "correspondiente al mes de …".
+ */
+function escalonesBono(texto, pago) {
+	let bloque = texto;
+	const marcas = [...texto.matchAll(new RegExp(`(?:correspondiente al|para el) mes (?:de )?(${MESES.join('|')}|setiembre) de (\\d{4})`, 'gi'))];
+	const propias = marcas.filter((m) => periodo(m[1], m[2]) === pago.mes);
+	if (propias.length) {
+		const ini = propias[0].index;
+		const sig = marcas.find((m) => m.index > ini && periodo(m[1], m[2]) !== pago.mes);
+		bloque = texto.slice(ini, sig ? sig.index : undefined);
+	}
+	const umbral = (desde) => {
+		const k = bloque.slice(desde).search(/menor o igual a|de hasta|hasta (?=PESOS|\(\s*\$)/i);
+		return k >= 0 ? montoDesde(bloque, desde + k) : null;
+	};
+	const out = [];
+	for (const letra of ['a', 'b']) {
+		const k = bloque.search(new RegExp(`\\b${letra}[.)]\\s*(?:PESOS|\\(\\s*\\$)`, 'i'));
+		if (k < 0) continue;
+		const monto = montoDesde(bloque, k);
+		const hasta = monto && umbral(monto.fin);
+		if (monto && hasta) out.push({ hasta: hasta.valor, monto: monto.valor });
+	}
+	if (out.length) return out;
+	const h = umbral(0);
+	// "hasta el haber mínimo" sin importe (Dec. 73/19 y desde el 552/24): el umbral es el mínimo del mes
+	const hastaValor = h && h.valor > pago.monto ? h.valor : null;
+	return [{ hasta: hastaValor, monto: pago.monto }];
 }
 
 /**
@@ -342,6 +394,7 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 
 	const pagosPorMes = {};
 	for (const b of bonos) {
+		if (b.previsional === false) continue;
 		for (const p of b.pagos) (pagosPorMes[p.mes] = pagosPorMes[p.mes] || []).push({ ...p, norma: b.norma, url: b.url, tipo: b.tipo, escalonado: b.escalonado });
 	}
 	const tramos = [...smvm].sort((a, b) => (a.mes < b.mes ? -1 : 1));
@@ -400,9 +453,19 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 			prop.bono = round(pagos.reduce((s, x) => s + x.monto, 0), 2);
 			prop.bonoNorma = pagos.map((x) => `${x.norma} (${x.tipo}${x.escalonado ? '; escalonado según el haber: monto para quien cobra hasta el haber mínimo' : ''})`).join(' + ');
 			fuentes.bono = pagos.map((x) => x.url).filter(Boolean);
+			const minimoMes = prop.haberMinimoJubilacion !== undefined ? prop.haberMinimoJubilacion : (existentes[p] || {}).haberMinimoJubilacion;
+			prop.bonoEscalones = pagos.flatMap((x) => (x.escalones || [{ hasta: null, monto: x.monto }]).map((e, i) => {
+				// El Dec. 268/24 (abril 2024) cita el mínimo de marzo: se toma el del mes, como lo liquidan los peritos
+				if (i === 0 && e.hasta && anterior && Math.abs(e.hasta - anterior.haberMinimoJubilacion) < 0.01 && minimoMes > e.hasta) {
+					avisosMes.push(`${x.norma}: el umbral ${e.hasta} es el haber mínimo del mes anterior; se toma el mínimo vigente`);
+					return { hasta: null, monto: e.monto, norma: x.norma };
+				}
+				return { hasta: e.hasta, monto: e.monto, norma: x.norma };
+			}));
 		} else if (primerBono && p >= primerBono) {
 			prop.bono = 0;
 			prop.bonoNorma = '';
+			prop.bonoEscalones = [];
 		}
 
 		// SMVM vigente y suplemento 82 %
@@ -508,6 +571,20 @@ async function buscarPorDependencia(dependencia, desde, hasta = moment()) {
 	return filas;
 }
 
+/** Decretos de bono previsional por búsqueda de texto en InfoLeg (tipo Decreto), año por año desde `desde`. */
+async function buscarDecretosBono(desde, hasta = moment()) {
+	const filas = new Map();
+	for (let anio = moment(desde).year(); anio <= moment(hasta).year(); anio++) {
+		for (const texto of TEXTOS_BUSQUEDA_BONO) {
+			const datos = new URLSearchParams({ tipoNorma: '2', numero: '', anioSancion: String(anio), texto, dependencia: '' }).toString();
+			const html = await descargar(`${INFOLEG}/buscarNormas.do`, { metodo: 'post', datos });
+			for (const f of parsearListaInfoleg(html)) if (clasificarFila(f) === 'bono') filas.set(f.id, f);
+			await esperar(150);
+		}
+	}
+	return [...filas.values()];
+}
+
 /**
  * Descarga y parsea todas las normas relevantes publicadas desde `desdePublicacion` ('YYYY-MM-DD').
  * @returns {{resoluciones, bonos, smvm, errores: Array<{id, norma, url, errores}>}}
@@ -518,6 +595,12 @@ async function obtenerNormas({ desdePublicacion, desdeSmvm, pausaMs = 300 } = {}
 		for (const f of await listarVinculos(lista)) filas.set(f.id, f);
 	}
 	const erroresLista = [];
+	try {
+		for (const f of await buscarDecretosBono(desdePublicacion)) filas.set(f.id, f);
+	} catch (e) {
+		erroresLista.push({ id: null, url: `${INFOLEG}/buscarNormas.do`, norma: 'búsqueda de decretos de bono', clase: 'bono', errores: [e.message] });
+	}
+	for (const f of DECRETOS_BONO_FIJOS) if (!filas.has(f.id)) filas.set(f.id, { ...f, publicacion: null });
 	let filasSmvm = 0;
 	for (const dep of DEPENDENCIAS_CONSEJO_SMVM) {
 		try {
@@ -552,9 +635,10 @@ async function obtenerNormas({ desdePublicacion, desdeSmvm, pausaMs = 300 } = {}
 		const parser = { anses: parsearResolucionAnses, bono: parsearDecretoBono, smvm: parsearResolucionSmvm }[f.clase];
 		const r = { ...parser(html), id: f.id, url, publicacion: f.publicacion };
 		if (f.clase === 'smvm' && esModificatoria(f) && !r.tramos.length) r.errores = []; // p. ej. Res. 14/2024 (solo vigencia)
+		if (f.clase === 'bono' && r.previsional === false) r.errores = []; // subsidios de la AUH: se ignoran
 		if (r.errores.length) errores.push({ id: f.id, url, norma: r.norma || f.texto.slice(0, 80), clase: f.clase, mes: r.mes || null, publicacion: f.publicacion, errores: r.errores });
 		if (f.clase === 'anses' && r.mes) resoluciones.push(r);
-		if (f.clase === 'bono' && r.pagos.length) bonos.push(r);
+		if (f.clase === 'bono' && r.pagos.length && r.previsional) bonos.push(r);
 		if (f.clase === 'smvm') for (const t of r.tramos) smvm.push({ ...t, norma: r.norma, url });
 		await esperar(pausaMs);
 	}
@@ -584,7 +668,7 @@ async function leerExistentes(desde, hasta) {
  * @param {string} [o.corrida]
  * @param {object} [o.normas] - normas ya obtenidas (tests / reuso)
  */
-async function sincronizarDatosPrevisionales({ desde, hasta, aplicar = false, forzar = false, corrida, normas, verbose = false } = {}) {
+async function sincronizarDatosPrevisionales({ desde, hasta, aplicar = false, forzar = false, corrida, normas, verbose = false, campos = null } = {}) {
 	const CORRIDA = corrida || `datosprev-${moment.utc().format('YYYYMMDD-HHmmss')}`;
 	// Sin `desde`: 3 meses atrás, o el mes siguiente al último cargado si quedó un hueco mayor
 	let inicio = desde;
@@ -607,7 +691,8 @@ async function sincronizarDatosPrevisionales({ desde, hasta, aplicar = false, fo
 	const resultado = { corrida: CORRIDA, aplicado: aplicar, desde: inicio, normas: n, meses: [], errores: n.errores, avisos, resumen: { nuevos: 0, camposNuevos: 0, conflictos: 0, escritos: 0 } };
 	for (const m of meses) {
 		const existente = existentes[m.mes];
-		const cambios = diffMes(existente, m.propuesto);
+		const propuesto = campos ? Object.fromEntries(Object.entries(m.propuesto).filter(([c]) => campos.includes(c))) : m.propuesto;
+		const cambios = diffMes(existente, propuesto);
 		const aEscribir = cambios.filter((c) => c.estado === 'nuevo' || (forzar && c.estado === 'conflicto'));
 		resultado.meses.push({ mes: m.mes, docNuevo: !existente, cambios, avisos: m.avisos });
 		if (!existente) resultado.resumen.nuevos++;
@@ -615,7 +700,7 @@ async function sincronizarDatosPrevisionales({ desde, hasta, aplicar = false, fo
 		resultado.resumen.conflictos += cambios.filter((c) => c.estado === 'conflicto').length;
 
 		if (!aplicar || !aEscribir.length) continue;
-		if (!existente && m.propuesto.haberMinimoJubilacion === undefined) continue; // no crear meses sin resolución
+		if (!existente && propuesto.haberMinimoJubilacion === undefined) continue; // no crear meses sin resolución
 		const $set = Object.fromEntries(aEscribir.map((c) => [c.campo, c.propuesto]));
 		const fecha = fechaDeMes(m.mes);
 		if (!existente) {
@@ -693,6 +778,6 @@ module.exports = {
 	htmlATexto, parsearMonto, parsearListaInfoleg, clasificarFila, parsearResolucionAnses, parsearDecretoBono,
 	parsearResolucionSmvm, mesesConAnio, smvmVigente, construirPropuesta, diffMes, textoInforme, urlNorma,
 	// red / base
-	obtenerNormas, buscarPorDependencia, listarVinculos, sincronizarDatosPrevisionales, revertir, runTareaSincronizacion,
+	escalonesBono, obtenerNormas, buscarPorDependencia, buscarDecretosBono, listarVinculos, sincronizarDatosPrevisionales, revertir, runTareaSincronizacion,
 	CAMPOS, DEFAULTS_MES_NUEVO,
 };

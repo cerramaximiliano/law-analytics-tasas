@@ -69,8 +69,10 @@ describe('datosPrevisionales - parseo de decretos de bono', () => {
 		const r = s.parsearDecretoBono(fixture('bono-dec-1108-2026.htm'));
 		assert.strictEqual(r.norma, 'Decreto 1108/2026');
 		assert.strictEqual(r.tipo, 'bono extraordinario previsional');
-		assert.deepStrictEqual(r.pagos, [{ mes: '2026-10', monto: 70000 }]);
+		// sin importes en el art. 3: el umbral es el haber mínimo del mes (hasta: null)
+		assert.deepStrictEqual(r.pagos, [{ mes: '2026-10', monto: 70000, escalones: [{ hasta: null, monto: 70000 }] }]);
 		assert.strictEqual(r.escalonado, false);
+		assert.strictEqual(r.previsional, true);
 	});
 
 	it('Dec. 532/2022: refuerzo escalonado de $7.000 en sep, oct y nov 2022', () => {
@@ -79,17 +81,50 @@ describe('datosPrevisionales - parseo de decretos de bono', () => {
 		assert.deepStrictEqual(r.pagos.map((p) => p.mes), ['2022-09', '2022-10', '2022-11']);
 		assert.ok(r.pagos.every((p) => p.monto === 7000));
 		assert.strictEqual(r.escalonado, true);
+		assert.deepStrictEqual(r.pagos[0].escalones, [{ hasta: 43352.59, monto: 7000 }, { hasta: 86705.18, monto: 4000 }]);
 	});
 
 	it('Dec. 788/2022: meses que cruzan el año (dic 2022, ene y feb 2023)', () => {
 		const r = s.parsearDecretoBono(fixture('bono-dec-788-2022.htm'));
-		assert.deepStrictEqual(r.pagos, [{ mes: '2022-12', monto: 10000 }, { mes: '2023-01', monto: 10000 }, { mes: '2023-02', monto: 10000 }]);
+		assert.deepStrictEqual(r.pagos.map(({ mes, monto }) => ({ mes, monto })), [{ mes: '2022-12', monto: 10000 }, { mes: '2023-01', monto: 10000 }, { mes: '2023-02', monto: 10000 }]);
+		assert.deepStrictEqual(r.pagos[2].escalones, [{ hasta: 50124.26, monto: 10000 }, { hasta: 100248.52, monto: 7000 }]);
 	});
 
 	it('Dec. 282/2023: montos distintos "respectivamente" por mes', () => {
 		const r = s.parsearDecretoBono(fixture('bono-dec-282-2023.htm'));
-		assert.deepStrictEqual(r.pagos, [{ mes: '2023-06', monto: 15000 }, { mes: '2023-07', monto: 17000 }, { mes: '2023-08', monto: 20000 }]);
+		assert.deepStrictEqual(r.pagos.map(({ mes, monto }) => ({ mes, monto })), [{ mes: '2023-06', monto: 15000 }, { mes: '2023-07', monto: 17000 }, { mes: '2023-08', monto: 20000 }]);
 		assert.strictEqual(r.escalonado, true);
+		// cada mes con su bloque "correspondiente al mes de …"
+		assert.deepStrictEqual(r.pagos.map((p) => p.escalones[0]), [{ hasta: 70938.24, monto: 15000 }, { hasta: 70938.24, monto: 17000 }, { hasta: 70938.24, monto: 20000 }]);
+		assert.ok(r.pagos.every((p) => p.escalones[1].hasta === 141876.48));
+	});
+
+	it('Dec. 309/2020: "por única vez" en abril (el art. 1 sigue con la AUH, que cita marzo)', () => {
+		const r = s.parsearDecretoBono(fixture('bono-dec-309-2020.htm'));
+		assert.deepStrictEqual(r.pagos, [{ mes: '2020-04', monto: 3000, escalones: [{ hasta: null, monto: 3000 }] }]);
+		assert.strictEqual(r.previsional, true);
+	});
+
+	it('Dec. 594/2019: subsidio de la AUH, no previsional', () => {
+		const r = s.parsearDecretoBono(fixture('bono-dec-594-2019.htm'));
+		assert.strictEqual(r.previsional, false);
+	});
+
+	it('Dec. 215/2022: umbral de 2 haberes mínimos ("de hasta")', () => {
+		const r = s.parsearDecretoBono(fixture('bono-dec-215-2022.htm'));
+		assert.deepStrictEqual(r.pagos[0].escalones, [{ hasta: 65260.8, monto: 12000 }]);
+	});
+
+	it('Dec. 268/2024: cita el mínimo de marzo; la propuesta de abril toma el vigente', () => {
+		const r = s.parsearDecretoBono(fixture('bono-dec-268-2024.htm'));
+		assert.deepStrictEqual(r.pagos[0].escalones, [{ hasta: 134445.3, monto: 70000 }]);
+		const { meses } = s.construirPropuesta({
+			resoluciones: [{ id: 1, mes: '2024-04', norma: 'Resolución X/2024', haberMinimo: 171283.31, movilidadPct: 27.4 }],
+			bonos: [{ ...r, url: 'u' }], smvm: [], desde: '2024-04', hasta: '2024-04',
+			existentes: { '2024-03': { haberMinimoJubilacion: 134445.3 } },
+		});
+		assert.deepStrictEqual(meses[0].propuesto.bonoEscalones, [{ hasta: null, monto: 70000, norma: 'Decreto 268/2024' }]);
+		assert.ok(meses[0].avisos.some((a) => /mes anterior/.test(a)));
 	});
 });
 

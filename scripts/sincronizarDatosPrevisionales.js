@@ -11,7 +11,8 @@
  *   node scripts/sincronizarDatosPrevisionales.js --revertir=<corrida>
  *
  * Con --apply escribe meses nuevos y campos vacíos; los valores ya cargados y distintos
- * (conflictos) solo se pisan con --forzar. Cada cambio queda en `datosprevisionales-sincronizaciones`.
+ * (conflictos) solo se pisan con --forzar. --campos=bono,bonoNorma,bonoEscalones limita qué campos se escriben.
+ * Cada cambio queda en `datosprevisionales-sincronizaciones`.
  * Opciones: --solo-cambios (oculta los meses sin diferencias), --json (guarda el detalle en server/files).
  */
 
@@ -41,9 +42,10 @@ const fmt = (v) => (v === null || v === undefined ? '—' : typeof v === 'number
 	const hasta = arg('hasta');
 	const aplicar = flag('apply');
 	const forzar = flag('forzar');
+	const campos = arg('campos') ? arg('campos').split(',').map((c) => c.trim()).filter(Boolean) : null;
 	console.log(`\n=== datosprevisionales desde ${desde || '(automático)'}${hasta ? ` hasta ${hasta}` : ''} · ${aplicar ? (forzar ? 'APLICAR + FORZAR' : 'APLICAR (solo completar)') : 'PRUEBA (no escribe)'}\n`);
 	console.log('Descargando normas de InfoLeg…');
-	const r = await svc.sincronizarDatosPrevisionales({ desde, hasta, aplicar, forzar, verbose: true });
+	const r = await svc.sincronizarDatosPrevisionales({ desde, hasta, aplicar, forzar, campos, verbose: true });
 	const { normas } = r;
 
 	for (const m of r.meses) {

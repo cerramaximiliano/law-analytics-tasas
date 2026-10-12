@@ -92,6 +92,9 @@ let datosPrevSchema = new Schema({
     puam: { type: Number },
     bono: { type: Number },          // monto máximo del bono/ayuda/refuerzo pagado en el mes; 0 si no hubo
     bonoNorma: { type: String },
+    // Escalones del decreto: quien cobra hasta `hasta` (null = haber mínimo del mes) recibe `monto`; por encima,
+    // lo necesario para llegar a hasta + monto. Varios decretos en el mes se suman.
+    bonoEscalones: [{ _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String }],
     normaSMVM: { type: String },
     fuentes: { type: Schema.Types.Mixed }, // { anses: [url], bono: [url], smvm: [url] }
   }, { collection: 'datosprevisionales' });
