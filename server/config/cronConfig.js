@@ -52,7 +52,7 @@ const cronConfig = {
         }
     },
 
-    // Conciliación con CPACF de los últimos 20 días (2658, 2764, TNA activa BNA, pasiva BNA):
+    // Conciliación con CPACF de los últimos 20 días (2658, 2764, TNA activa BNA, pasiva BNA, activa BP):
     // corrige los días hábiles que quedaron con la publicación anterior (conciliacionCPACFService).
     conciliacionCPACF: {
         diaria: '30 8 * * *'

@@ -23,8 +23,8 @@ const SERIES = {
 	tasaActivaCNAT2658: { rateId: '22', inicio: '2017-12-01' },
 	tasaActivaCNAT2764: { rateId: '23', inicio: '2022-11-07', capitalizacion: true },
 	tasaActivaTnaBNA: { rateId: '25', inicio: '2005-01-01' },
-	tasaPasivaBNA: { rateId: '2', inicio: '2005-01-01' },
-	// Banco Provincia: CPACF (y nuestra serie) usan año de 360 días
+	// Pasiva BNA y Banco Provincia: CPACF (y nuestra serie) usan año de 360 días
+	tasaPasivaBNA: { rateId: '2', inicio: '2005-01-01', divisor: 360 },
 	tasaActivaBP: { rateId: '3', inicio: '2005-01-01', divisor: 360 },
 };
 
