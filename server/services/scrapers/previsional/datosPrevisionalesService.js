@@ -720,6 +720,7 @@ async function sincronizarDatosPrevisionales({ desde, hasta, aplicar = false, fo
 
 /** Deshace una corrida aplicada: borra los meses creados y restaura los campos. */
 async function revertir(corrida) {
+	if (!corrida) throw new Error('revertir: falta la corrida');
 	const cambios = await auditoria().find({ corrida, revertido: { $ne: true } }).toArray();
 	for (const c of cambios) {
 		if (c.campo === '__documento__') await coleccion().deleteOne({ fecha: c.fecha });
@@ -743,30 +744,47 @@ function textoInforme(r) {
 	return lineas.join('\n');
 }
 
+/** Clave estable de un error de parseo, para no repetir el aviso en cada corrida. */
+const claveError = (e) => `${e.id ?? e.norma}|${(e.errores || []).join(';')}`;
+
+/** Asunto del email: meses nuevos primero (es lo que se espera ver), después el resto. */
+function asuntoAviso(r, erroresNuevos) {
+	const meses = r.meses.filter((m) => m.docNuevo && m.cambios.some((c) => c.estado === 'nuevo')).map((m) => m.mes);
+	const partes = [];
+	if (meses.length) partes.push(`mes nuevo ${meses.join(', ')}`);
+	partes.push(`${r.resumen.escritos} campos escritos`, `${r.resumen.conflictos} conflictos`, `${r.errores.length} errores de parseo${erroresNuevos ? ` (${erroresNuevos} nuevos)` : ''}`);
+	return `[datosprevisionales] ${partes.join(' · ')}`;
+}
+
 /**
- * Tarea programada: sincroniza los últimos 3 meses en modo "solo completar" (escribe meses
- * nuevos y campos vacíos; los conflictos no se pisan) y avisa por email si hubo errores de
- * parseo, conflictos o meses nuevos.
+ * Tarea programada (dos veces por día): sincroniza los últimos 3 meses en modo "solo completar"
+ * (escribe meses nuevos y campos vacíos; los conflictos no se pisan) y avisa por email si escribió
+ * algo o si aparece un error de parseo que no se avisó antes. Los errores ya avisados y los
+ * conflictos persisten entre corridas: solos no disparan el email (quedan en el log). Lo avisado
+ * se guarda en `datosprevisionales-sincronizaciones` (documento `_id: 'ultimo-aviso'`, sin campo
+ * `corrida`: `revertir` exige una y no lo toca).
  */
 async function runTareaSincronizacion({ destinatario = 'soporte@lawanalytics.app' } = {}) {
 	try {
 		const r = await sincronizarDatosPrevisionales({ aplicar: true });
-		// Email si alguna norma no parseó o si se escribió algo. Los conflictos (valor cargado a mano
-		// distinto del de la norma) van en el log y en el cuerpo del email, pero solos no lo disparan:
-		// persisten entre corridas y mandarían un correo cada vez.
 		if (r.resumen.conflictos) logger.warn(`[datosPrevisionales] ${r.resumen.conflictos} conflictos sin aplicar (ver modo prueba del script)`);
-		if (r.errores.length || r.resumen.escritos) {
+		if (r.errores.length) logger.error(`[datosPrevisionales] ${r.errores.length} normas no parsearon: ${r.errores.map((e) => e.norma).join(', ')}`);
+		const claves = r.errores.map(claveError);
+		const previo = await auditoria().findOne({ _id: 'ultimo-aviso' });
+		const avisadas = new Set(previo?.errores || []);
+		const erroresNuevos = claves.filter((k) => !avisadas.has(k)).length;
+		if (r.resumen.escritos || erroresNuevos) {
 			const { sendEmail } = require('../../aws_ses/aws_sesService');
-			const asunto = `[datosprevisionales] ${r.resumen.escritos} campos escritos · ${r.resumen.conflictos} conflictos · ${r.errores.length} errores de parseo`;
 			const cuerpo = `Corrida ${r.corrida} (desde ${r.desde}).\nPara revertir: node scripts/sincronizarDatosPrevisionales.js --revertir=${r.corrida}\n\n${textoInforme(r)}`;
 			try {
-				await sendEmail(destinatario, asunto, `<pre style="font-family:monospace">${cuerpo.replace(/</g, '&lt;')}</pre>`, cuerpo, []);
+				await sendEmail(destinatario, asuntoAviso(r, erroresNuevos), `<pre style="font-family:monospace">${cuerpo.replace(/</g, '&lt;')}</pre>`, cuerpo, []);
 			} catch (e) {
 				logger.error(`[datosPrevisionales] Error enviando email: ${e.message}`);
 			}
 		}
-		if (r.errores.length) logger.error(`[datosPrevisionales] ${r.errores.length} normas no parsearon: ${r.errores.map((e) => e.norma).join(', ')}`);
-		return { success: true, corrida: r.corrida, resumen: r.resumen, errores: r.errores.length };
+		// Se guardan los errores vigentes: uno que se resuelve y vuelve a aparecer se avisa de nuevo
+		await auditoria().updateOne({ _id: 'ultimo-aviso' }, { $set: { errores: claves, ultimaCorrida: r.corrida, actualizado: new Date() } }, { upsert: true });
+		return { success: true, corrida: r.corrida, resumen: r.resumen, errores: r.errores.length, erroresNuevos };
 	} catch (e) {
 		logger.error(`[datosPrevisionales] Error: ${e.message}`);
 		return { success: false, error: e.message };
@@ -778,6 +796,6 @@ module.exports = {
 	htmlATexto, parsearMonto, parsearListaInfoleg, clasificarFila, parsearResolucionAnses, parsearDecretoBono,
 	parsearResolucionSmvm, mesesConAnio, smvmVigente, construirPropuesta, diffMes, textoInforme, urlNorma,
 	// red / base
-	escalonesBono, obtenerNormas, buscarPorDependencia, buscarDecretosBono, listarVinculos, sincronizarDatosPrevisionales, revertir, runTareaSincronizacion,
+	escalonesBono, obtenerNormas, buscarPorDependencia, buscarDecretosBono, listarVinculos, sincronizarDatosPrevisionales, revertir, runTareaSincronizacion, claveError, asuntoAviso,
 	CAMPOS, DEFAULTS_MES_NUEVO,
 };

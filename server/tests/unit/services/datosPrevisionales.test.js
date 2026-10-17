@@ -236,3 +236,26 @@ describe('datosPrevisionales - propuesta y diff', () => {
 		assert.strictEqual(s.parsearMonto('70.000'), 70000);
 	});
 });
+
+describe('datosPrevisionales - aviso de la tarea programada', () => {
+	const r = {
+		meses: [
+			{ mes: '2026-10', docNuevo: false, cambios: [{ campo: 'bono', estado: 'igual' }] },
+			{ mes: '2026-11', docNuevo: true, cambios: [{ campo: 'haberMinimoJubilacion', estado: 'nuevo' }] },
+		],
+		resumen: { escritos: 7, conflictos: 0 },
+		errores: [{ id: 1, norma: 'Resolución 1/2026', errores: ['sin mes'] }],
+	};
+
+	it('el asunto nombra el mes nuevo y cuántos errores son nuevos', () => {
+		assert.strictEqual(s.asuntoAviso(r, 1), '[datosprevisionales] mes nuevo 2026-11 · 7 campos escritos · 0 conflictos · 1 errores de parseo (1 nuevos)');
+		assert.strictEqual(s.asuntoAviso({ ...r, meses: [r.meses[0]], resumen: { escritos: 1, conflictos: 2 } }, 0), '[datosprevisionales] 1 campos escritos · 2 conflictos · 1 errores de parseo');
+	});
+
+	it('la clave del error es estable entre corridas y cambia si cambia el error', () => {
+		const e = r.errores[0];
+		assert.strictEqual(s.claveError(e), s.claveError({ ...e }));
+		assert.notStrictEqual(s.claveError(e), s.claveError({ ...e, errores: ['otro'] }));
+		assert.strictEqual(s.claveError({ norma: 'búsqueda SMVM', id: null, errores: ['x'] }), 'búsqueda SMVM|x');
+	});
+});

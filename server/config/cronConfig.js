@@ -140,12 +140,12 @@ const cronConfig = {
     },
 
     // Sincronización de `datosprevisionales` desde InfoLeg (resoluciones mensuales de ANSES,
-    // decretos de bono y resoluciones del Consejo del Salario). ANSES publica a fin de mes y el
-    // bono sale los últimos días hábiles: lunes y jueves a las 12:20, más los días 25 a 31 para
-    // agarrar la resolución apenas sale. Solo completa (no pisa valores cargados distintos).
+    // decretos de bono y resoluciones del Consejo del Salario). Se publican todos los meses pero
+    // sin día fijo: dos corridas diarias, también fines de semana (el Boletín Oficial a veces saca
+    // ediciones extraordinarias). Cada corrida tarda ~15 s; solo completa (no pisa valores
+    // cargados distintos) y avisa por email solo si escribió algo o aparece un error nuevo.
     datosPrevisionales: {
-        sincronizacion: '20 12 * * 1,4',
-        finDeMes: '20 18 25-31 * *'
+        sincronizacion: '20 12,18 * * *'
     },
 
     // Sincronización de valores UMA (Ley 27.423) desde la tabla pública del
