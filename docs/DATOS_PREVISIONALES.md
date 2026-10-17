@@ -189,7 +189,11 @@ resoluciones del SMVM con HTML real de InfoLeg; propuesta y diff; aviso del cron
   se propone antes de 2018-01 (ley 27.426, BO 28/12/2017; Atlas lo tiene en 0). Corregido con tests; prueba en seco
   desde 2008-08 de los campos del SMVM: solo difieren de Atlas `salarioMVM` de 2008-11, 2021-07 y 2021-08 y
   `suplemento82SMVM` de 2022-08 (1.712,34 → 1.712,04), los cuatro que corrige el hub en Atlas. La ventana del cron
-  (3 meses) no toca nada de esto: 0 conflictos y 0 errores.
+  (3 meses) no toca nada de esto: 0 conflictos y 0 errores. Desplegado en el commit 217ca3e.
+- **17/10/2026, cierre**: la sesión del hub ya había corregido esos 4 valores en Atlas (con OK del dueño) y completó
+  `normaSMVM` y `fuentes.smvm` de 2008-08 a 2024-03 con los tramos de este lector. Prueba en seco de 2008-08 a 2026-10
+  sobre `salarioMVM`, `suplemento82SMVM` y `normaSMVM`: **0 conflictos y 0 campos por completar**. Quedan los 16 errores
+  de lectura de resoluciones viejas de ANSES descritos en §8, que no afectan al cron.
 
 Despliegue: hub `/var/www/admin` → `git pull` + `pm2 restart law-analytics-tasas` (commits d29ac89 y bfb1c81 del
 17/10/2026).
@@ -199,3 +203,26 @@ Despliegue: hub `/var/www/admin` → `git pull` + `pm2 restart law-analytics-tas
 - Los retroactivos guardados en el front no se recalculan solos cuando entra un mes nuevo (no hay keepUpdated para
   `classType: previsional`): hoy se reabren y se guardan de nuevo desde Guardados.
 - Si cambia el esquema de `datosprevisionales` en el hub, replicarlo en `server/models/datosprevisionales.js`.
+- **16 resoluciones viejas de ANSES que el lector no entiende** (aparecen en el informe solo si se corre el script con
+  `--desde` anterior a 4/2024; el cron las filtra porque son de antes de su ventana y no generan aviso). El lector de
+  ANSES está hecho para la resolución mensual del DNU 274/2024 ("vigente a partir del mes de X", haber mínimo, máximo,
+  bases, PBU y PUAM en una sola norma). Antes de 4/2024 la movilidad era trimestral (marzo, junio, septiembre y
+  diciembre) y salía en una resolución aparte, solo con el porcentaje:
+  - 15 resoluciones de **"valor de la movilidad"**, que dicen "correspondiente al mes de <mes> de <año>, es de X %":
+    - ley 27.426 (citan la ley 27.160): Res. 32/2018 (3/2018, 5,71 %), 125/2018 (9/2018, 6,68 %), 243/2018 (12/2018,
+      7,78 %) y 140/2019 (6/2019, 10,74 %);
+    - ley 27.609: Res. 48/2021 (3/2021, 8,07 %), 105/2021 (6/2021, 12,12 %), 26/2022 (3/2022, 12,28 %), 128/2022
+      (6/2022, 15,00 %), 180/2022 (9/2022, 15,53 %), 256/2022 (12/2022, 15,62 %), 27/2023 (3/2023, 17,04 %), 109/2023
+      (6/2023, 20,92 %), 186/2023 (9/2023, 23,29 %), 216/2023 (12/2023, 20,87 %) y 38/2024 (3/2024, 27,18 %).
+  - La **Res. 201/2022** (haber mínimo de 9/2022, $ 43.352,59): tiene la errata "ARTÍCULO 1°,-" (coma en vez de punto),
+    y el corte de artículos no la reconoce; el haber mínimo queda sin leer.
+
+  No hay datos perdidos: esos meses ya están en Atlas, y en una corrida histórica la movilidad se deriva del cociente de
+  haberes mínimos de la resolución de haberes del mismo mes (da el mismo porcentaje; p. ej. 12/2022: 15,62 %). 
+
+  **Pendiente (prioridad baja, decidido el 17/10/2026):** que el lector acepte "correspondiente al mes de" como fórmula de
+  vigencia, lea el porcentaje de "es de … (X %)" o "es de X %" y tolere la coma en el encabezado del artículo. No cambia
+  ningún cálculo: el motor del haber de caja y el retroactivo leen Atlas, no InfoLeg, y esos meses ya están cargados y
+  verificados. Sirve para dos cosas: que la prueba en seco del historial completo (el control que encontró los 4 valores
+  mal cargados del SMVM) salga sin errores conocidos, y que una recarga desde cero de `datosprevisionales` no deje sin
+  leer el haber mínimo de 9/2022 (Res. 201/2022), el único hueco real.
