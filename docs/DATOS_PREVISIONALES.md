@@ -26,9 +26,27 @@ Regla de la casa: **cada valor tiene norma**. Nada se extrapola ni se carga sin 
 |---|---|---|
 | **Resoluciones mensuales de ANSES** (movilidad, DNU 274/2024 desde 4/2024) | Vínculos ("normas que modifican o complementan") de la **ley 24.241** (id 639) y del **DNU 274/2024** (id 397577). Ninguna de las dos listas está completa sola (p. ej. la Res. 66/2025 solo figura en la de la ley 24.241). | % de movilidad, haber mínimo y máximo, base imponible mínima y máxima, PBU, PUAM. El mes sale del texto ("vigente a partir del mes de X"), no de la fecha de publicación. |
 | **Decretos de bono previsional** | Vínculos de la ley 24.241 + búsqueda por texto, tipo Decreto, año por año ("ingreso previsional", "subsidio extraordinario", "bono extraordinario previsional", "ayuda económica previsional"). Los que no aparecen ni así van fijos (Dec. 309/2020). | Monto máximo del bono (el que cobra quien percibe hasta el haber mínimo), escalones y decreto. Los subsidios de la AUH se ignoran. |
-| **Salario mínimo, vital y móvil** (otro tipo de norma) | Búsqueda por dependencia del **Consejo Nacional del Empleo, la Productividad y el SMVM**: 3333 (nombre actual) y 18 (nombre viejo, usado aún en 2022). Se mira 30 meses hacia atrás. | Tramos "a partir del 1° de <mes>": una resolución suele fijar varios meses hacia adelante (la Res. 4/2026 fija 9/2026 → 4/2027). Si dos resoluciones fijan el mismo tramo, gana la más nueva. |
+| **Salario mínimo, vital y móvil** (otro tipo de norma) | Búsqueda por dependencia del **Consejo Nacional del Empleo, la Productividad y el SMVM**: 3333 (nombre actual) y 18 (nombre viejo, usado aún en 2022). Se mira 30 meses hacia atrás. | Tramos "a partir del 1° de <mes>": una resolución suele fijar varios meses hacia adelante (la Res. 4/2026 fija 9/2026 → 4/2027). Ver reglas abajo. |
 
-Ojo: la serie de datos.gob.ar del SMVM tiene meses mal rellenados; por eso se lee la resolución.
+Reglas del SMVM (verificadas el 17/10/2026 contra la serie `57.1_SMVMM_0_M_34` de datos.gob.ar: **225 de 225 meses
+iguales**, 2008-08 → 2027-04, 37 resoluciones sin errores de lectura):
+
+- Se lee solo la parte resolutiva (desde "RESUELVE"): los considerandos citan propuestas con otros montos (Res. 3-E/2017).
+- Redacciones aceptadas: "1° de agosto de 2013, en PESOS", "1° de Enero del año 2014", "1° octubre de 2020",
+  "1° abril de 2021 en PESOS", "de PESOS … ($ 1840)", "Resolución 3-E/2017".
+- Hasta 2011 el primer tramo no lleva fecha ("Fíjase … un SALARIO MINIMO, VITAL Y MOVIL … en PESOS … para los
+  trabajadores mensualizados"): rige desde el "mes de <mes>" que nombre la resolución (Res. 2/2010 → 8/2010) o, si no
+  nombra ninguno, desde el mes siguiente a la publicación (Res. 2/2011, BO 30/8/2011 → 9/2011, como la serie).
+- **Una resolución que fija el SMVM reemplaza todos los tramos anteriores desde su primer mes** (la 11/2021 deja sin
+  efecto los 11/2021 y 02/2022 de la 5/2021). Una **modificatoria o rectificatoria** (sumario con "MODIFICACION" o
+  "RECTIF") solo pisa los meses que nombra: la Res. 1/2019 sustituye el tramo de 3/2019 de la 3/2018 (12.500 en vez de
+  11.900) y deja el de 6/2019; la 5/2021 corrige el 6/2021 de la 4/2021 (25.272, no 25.572).
+- Un tramo de más de 3 meses antes de la publicación se descarta como errata (la Res. 4/2021 dice "1° abril de 2020").
+- Clasificación: "PRESIDENTE" no excluye (el sumario de la Res. 1/2019 dice "del entonces Presidente"); "CONVOCA",
+  "DESIGNACI" e "INTEGRACION" sí.
+
+Ojo: `IndicesMensuales.smvm` (la copia de la serie que usa el hub) tuvo meses mal rellenados con el tramo anterior en la
+carga inicial; por eso se lee la resolución. La serie publicada en datos.gob.ar sí coincide con InfoLeg y sirve de control.
 
 ## 2. Qué se guarda en cada mes
 
@@ -163,6 +181,15 @@ resoluciones del SMVM con HTML real de InfoLeg; propuesta y diff; aviso del cron
 - Primer mes que debería cargar el cron sin intervención: **2026-11**, cuando ANSES publique la resolución (última
   semana de octubre). Si cambia el formato del texto y no se puede leer, el mes no se carga y llega el aviso de error:
   nunca se escribe un valor mal leído.
+
+- **17/10/2026, huecos del SMVM** (reportados por la sesión law-analytics-server-86 al reparar SMVM y pasiva para el
+  retroactivo): la Res. 1/2019 quedaba afuera por el clasificador (la búsqueda sí la trae), la regex perdía las
+  redacciones de 2010–2016, 2020 y 2021, y las resoluciones nuevas no reemplazaban los tramos futuros de las anteriores.
+  Además `parsearMonto` leía "$ 50.124.26" (errata de la Res. ANSES 260/2022) como 5.012.426. El suplemento del 82 % ya no
+  se propone antes de 2018-01 (ley 27.426, BO 28/12/2017; Atlas lo tiene en 0). Corregido con tests; prueba en seco
+  desde 2008-08 de los campos del SMVM: solo difieren de Atlas `salarioMVM` de 2008-11, 2021-07 y 2021-08 y
+  `suplemento82SMVM` de 2022-08 (1.712,34 → 1.712,04), los cuatro que corrige el hub en Atlas. La ventana del cron
+  (3 meses) no toca nada de esto: 0 conflictos y 0 errores.
 
 Despliegue: hub `/var/www/admin` → `git pull` + `pm2 restart law-analytics-tasas` (commits d29ac89 y bfb1c81 del
 17/10/2026).

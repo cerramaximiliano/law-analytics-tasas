@@ -41,6 +41,7 @@ const INFOLEG = 'https://servicios.infoleg.gob.ar/infolegInternet';
 const LISTAS_VINCULOS = { dnu274: 397577, ley24241: 639 };
 // Consejo del Salario: 3333 (desde 2014 aprox.) y 18 (nombre viejo, usado aún en 2022)
 const DEPENDENCIAS_CONSEJO_SMVM = [3333, 18];
+const DESDE_SUPLEMENTO_82 = '2018-01'; // ley 27.426, art. 2
 // Decretos de bono previsional: además de los vínculos, InfoLeg se busca por texto (tipo Decreto) año por año.
 // Algunos no aparecen ni así (Dec. 309/20, título "EMERGENCIA SANITARIA"): van fijos.
 const TEXTOS_BUSQUEDA_BONO = ['ingreso previsional', 'subsidio extraordinario', 'bono extraordinario previsional', 'ayuda economica previsional'];
@@ -106,11 +107,15 @@ function htmlATexto(html) {
 	return $.root().text().replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/** "403.317,99" | "180.000.-" | "1105,26" → número. */
+/**
+ * "403.317,99" | "180.000.-" | "1105,26" → número. "50.124.26" (errata de la Res. ANSES 260/2022, "CON VEINTISEIS
+ * CENTAVOS"): sin coma, un último grupo de 2 dígitos tras el punto son centavos (los de miles tienen 3).
+ */
 function parsearMonto(s) {
 	if (s === undefined || s === null) return null;
-	const limpio = String(s).replace(/[^\d.,]/g, '').replace(/[.,]+$/, '');
+	let limpio = String(s).replace(/[^\d.,]/g, '').replace(/[.,]+$/, '');
 	if (!limpio) return null;
+	if (!limpio.includes(',')) limpio = limpio.replace(/\.(\d{2})$/, ',$1');
 	const m = limpio.match(/^(.*?)(?:,(\d{1,2}))?$/);
 	const entero = m[1].replace(/[.,]/g, '');
 	const n = Number(`${entero}.${m[2] || '0'}`);
@@ -179,15 +184,16 @@ function clasificarFila(fila) {
 		&& !/ASIGNACIONES FAMILIARES|CONJUNTA|CALENDARIO/.test(t)) return 'anses';
 	if (/DECRETO/.test(t) && /BONO EXTRAORDINARIO PREVISIONAL|AYUDA ECONOMICA PREVISIONAL|REFUERZO DE INGRESO PREVISIONAL|REFUERZO - OTORGASE|SUBSIDIO EXTRAORDINARIO/.test(t)) return 'bono';
 	// Incluye rectificaciones y modificaciones (la Res. 6/2022 adelantó tramos de la 4/2022): si no
-	// traen tramos se ignoran sin alertar (ver esModificatoria)
-	if (/CONSEJO NAC/.test(t) && /SALARIO M[IÍ]NIMO|SUMAS - FIJANSE|FIJ[EA]SE|RECTIF|MODIFICACION/.test(t) && !/CONVOCATORIA|DESIGNACI|INTEGRACION|PRESIDENTE/.test(t)) return 'smvm';
+	// traen tramos se ignoran sin alertar (ver esModificatoria). "PRESIDENTE" no excluye: la Res. 1/2019
+	// ("... DEL ENTONCES PRESIDENTE DEL ...") adelantó el tramo de 03/2019 de la 3/2018
+	if (/CONSEJO NAC/.test(t) && /SALARIO M[IÍ]NIMO|SUMAS - FIJANSE|FIJ[EA]SE|RECTIF|MODIFICACION/.test(t) && !/CONVOCA|DESIGNACI|INTEGRACION/.test(t)) return 'smvm';
 	return null;
 }
 
 const esModificatoria = (fila) => /RECTIF|MODIFICACION/i.test(fila.texto);
 
 function nombreNorma(texto, tipo) {
-	const m = texto.match(new RegExp(`${tipo}\\s+(?:E\\s+)?(\\d+)\\s*/\\s*(\\d{4})`, 'i'));
+	const m = texto.match(new RegExp(`${tipo}\\s+(?:E\\s+)?(\\d+)(?:\\s*-\\s*E)?\\s*/\\s*(\\d{4})`, 'i')); // "3-E/2017"
 	return m ? `${tipo === 'Decreto' ? 'Decreto' : 'Resolución'} ${m[1]}/${m[2]}` : null;
 }
 
@@ -347,20 +353,54 @@ function escalonesBono(texto, pago) {
 
 /**
  * Resolución del Consejo del Salario → tramos del SMVM mensual (trabajadores mensualizados).
+ * Redacciones: "A partir del 1° de agosto de 2013, en PESOS …", "1° de Enero del año 2014", "1° octubre de 2020",
+ * "1° abril de 2021 en PESOS", "de PESOS … ($ 1840)". Hasta 2011 el primer tramo no lleva fecha ("Fíjase … un SALARIO
+ * MINIMO, VITAL Y MOVIL … en PESOS … ($ 2300) para los trabajadores mensualizados"): rige desde el "mes de <mes>" que
+ * nombre la resolución o, si no nombra ninguno, desde el mes siguiente a la publicación (Res. 2/2011, BO 30/08/2011 →
+ * 09/2011, como la serie 57.1_SMVMM_0_M_34 de datos.gob.ar).
+ * @param {string} html
+ * @param {object} [o]
+ * @param {string} [o.publicacion] - fecha de publicación 'YYYY-MM-DD' (para el primer tramo sin fecha)
  * @returns {{norma, tramos: Array<{mes, monto}>, errores: string[]}}
  */
-function parsearResolucionSmvm(html) {
-	const texto = htmlATexto(html);
-	const r = { norma: nombreNorma(texto, 'Resoluci[oó]n'), tramos: [], errores: [] };
-	const re = /A partir del (?:1\s*[°º]?|primero) de (\w+)(?: de)? (\d{4}),? en (?:la suma de )?PESOS[^($]{0,250}\(\s*\$\s*([\d.]+(?:,\d{1,2})?)/gi;
+function parsearResolucionSmvm(html, { publicacion } = {}) {
+	const completo = htmlATexto(html);
+	const r = { norma: nombreNorma(completo, 'Resoluci[oó]n'), tramos: [], errores: [] };
+	// Solo la parte resolutiva: los considerandos citan propuestas con otros montos (Res. 3-E/2017)
+	const k = completo.search(/RESUELVE\s*:/);
+	const texto = k >= 0 ? completo.slice(k) : completo;
+	const re = /A partir del (?:1\s*[°º]?|primero)(?: de)? (\w+)(?: del?)?(?: año)? (\d{4}),? (?:en|de) (?:la suma de )?PESOS[^($]{0,250}\(\s*\$\s*([\d.]+(?:,\d{1,2})?)/gi;
 	for (const m of texto.matchAll(re)) {
 		const mes = periodo(m[1], m[2]);
 		if (mes && !r.tramos.some((x) => x.mes === mes)) r.tramos.push({ mes, monto: parsearMonto(m[3]) });
 	}
+	const inicial = /F[ií]jase[^$]{0,600}?SALARIO M[IÍ]NIMO,? VITAL Y M[OÓ]VIL excluidas las asignaciones familiares,[^$]{0,250}?(?:en|de) PESOS[^($]{0,250}\(\s*\$\s*([\d.]+(?:,\d{1,2})?)[^)]*\) para (?:todos )?los trabajadores mensualizados/i.exec(texto);
+	if (inicial && !/A partir del (?:1|primero)/i.test(inicial[0])) {
+		const anio = (publicacion || '').slice(0, 4);
+		const explicito = new RegExp(`haberes correspondientes al mes de (${MESES.join('|')}|setiembre)`, 'i').exec(texto);
+		const mes = explicito && anio ? periodo(explicito[1], anio) : publicacion ? mesSiguiente(publicacion.slice(0, 7)) : null;
+		if (mes && !r.tramos.some((x) => x.mes === mes)) r.tramos.push({ mes, monto: parsearMonto(inicial[1]) });
+		else if (!mes) r.errores.push('tramo sin fecha y sin fecha de publicación');
+	}
+	// Un tramo de más de 3 meses antes de la publicación es una errata: la Res. 4/2021 dice "1° abril de 2020" por 2021
+	// (la 5/2021 la rectifica). Ninguna resolución fijó el SMVM con más retroactividad.
+	if (publicacion) r.tramos = r.tramos.filter((t) => t.mes >= mesSiguiente(publicacion.slice(0, 7), -3));
 	r.tramos.sort((a, b) => (a.mes < b.mes ? -1 : 1));
 	if (!r.norma) r.errores.push('no se encontró el número de resolución');
 	if (!r.tramos.length) r.errores.push('no se encontraron tramos "A partir del 1° de <mes>"');
 	return r;
+}
+
+/**
+ * Suma los tramos de una resolución nueva (las normas se recorren por id, de la más vieja a la más nueva).
+ * Una resolución que fija el SMVM reemplaza todos los tramos anteriores desde su primer mes (la 11/2021 deja sin
+ * efecto los 11/2021 y 02/2022 de la 5/2021). Una modificatoria o rectificatoria solo pisa los meses que nombra (la
+ * 1/2019 sustituye el inciso de 03/2019 de la 3/2018 y deja el de 06/2019; la 5/2021 corrige el 06/2021 de la 4/2021).
+ */
+function reemplazarTramos(previos, nuevos, { modificatoria = false } = {}) {
+	const desde = nuevos.reduce((min, t) => (t.mes < min ? t.mes : min), nuevos[0].mes);
+	const meses = new Set(nuevos.map((t) => t.mes));
+	return [...previos.filter((t) => (modificatoria ? !meses.has(t.mes) : t.mes < desde)), ...nuevos].sort((a, b) => (a.mes < b.mes ? -1 : 1));
 }
 
 /** SMVM vigente en un mes: el último tramo con mes ≤ p. */
@@ -475,7 +515,8 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 			prop.normaSMVM = s.mes === p ? s.norma : `${s.norma} (tramo de ${s.mes}, vigente)`;
 			fuentes.smvm = [s.url].filter(Boolean);
 			const min = prop.haberMinimoJubilacion !== undefined ? prop.haberMinimoJubilacion : (existentes[p] || {}).haberMinimoJubilacion;
-			if (min > 0) prop.suplemento82SMVM = round(Math.max(0, 0.82 * s.monto - min), 2);
+			// El suplemento existe desde la ley 27.426 (BO 28/12/2017): antes no se propone
+			if (min > 0 && p >= DESDE_SUPLEMENTO_82) prop.suplemento82SMVM = round(Math.max(0, 0.82 * s.monto - min), 2);
 		}
 		if (Object.keys(fuentes).length) prop.fuentes = fuentes;
 
@@ -616,7 +657,7 @@ async function obtenerNormas({ desdePublicacion, desdeSmvm, pausaMs = 300 } = {}
 
 	const resoluciones = [];
 	const bonos = [];
-	const smvm = [];
+	let smvm = [];
 	const errores = [...erroresLista];
 	const candidatas = [...filas.values()]
 		.map((f) => ({ ...f, clase: clasificarFila(f) }))
@@ -633,18 +674,16 @@ async function obtenerNormas({ desdePublicacion, desdeSmvm, pausaMs = 300 } = {}
 			continue;
 		}
 		const parser = { anses: parsearResolucionAnses, bono: parsearDecretoBono, smvm: parsearResolucionSmvm }[f.clase];
-		const r = { ...parser(html), id: f.id, url, publicacion: f.publicacion };
+		const r = { ...parser(html, { publicacion: f.publicacion }), id: f.id, url, publicacion: f.publicacion };
 		if (f.clase === 'smvm' && esModificatoria(f) && !r.tramos.length) r.errores = []; // p. ej. Res. 14/2024 (solo vigencia)
 		if (f.clase === 'bono' && r.previsional === false) r.errores = []; // subsidios de la AUH: se ignoran
 		if (r.errores.length) errores.push({ id: f.id, url, norma: r.norma || f.texto.slice(0, 80), clase: f.clase, mes: r.mes || null, publicacion: f.publicacion, errores: r.errores });
 		if (f.clase === 'anses' && r.mes) resoluciones.push(r);
 		if (f.clase === 'bono' && r.pagos.length && r.previsional) bonos.push(r);
-		if (f.clase === 'smvm') for (const t of r.tramos) smvm.push({ ...t, norma: r.norma, url });
+		if (f.clase === 'smvm' && r.tramos.length) smvm = reemplazarTramos(smvm, r.tramos.map((t) => ({ ...t, norma: r.norma, url })), { modificatoria: esModificatoria(f) });
 		await esperar(pausaMs);
 	}
-	// Si dos resoluciones fijan el mismo tramo, gana la de id mayor (la más nueva)
-	const tramos = Object.values(smvm.reduce((acc, t) => ((acc[t.mes] = t), acc), {}));
-	return { resoluciones, bonos, smvm: tramos, errores };
+	return { resoluciones, bonos, smvm, errores };
 }
 
 // ─── Sincronización ──────────────────────────────────────────────────────────
@@ -797,7 +836,7 @@ async function runTareaSincronizacion({ destinatario = 'soporte@lawanalytics.app
 module.exports = {
 	// puras
 	htmlATexto, parsearMonto, parsearListaInfoleg, clasificarFila, parsearResolucionAnses, parsearDecretoBono,
-	parsearResolucionSmvm, mesesConAnio, smvmVigente, construirPropuesta, diffMes, textoInforme, urlNorma,
+	parsearResolucionSmvm, reemplazarTramos, mesesConAnio, smvmVigente, construirPropuesta, diffMes, textoInforme, urlNorma,
 	// red / base
 	escalonesBono, obtenerNormas, buscarPorDependencia, buscarDecretosBono, listarVinculos, sincronizarDatosPrevisionales, revertir, runTareaSincronizacion, claveError, asuntoAviso,
 	CAMPOS, DEFAULTS_MES_NUEVO,

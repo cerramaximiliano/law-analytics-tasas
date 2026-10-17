@@ -146,6 +146,43 @@ describe('datosPrevisionales - parseo de resoluciones del SMVM', () => {
 		]);
 	});
 
+	it('redacciones viejas: "del año 2014", "1° octubre", "1° abril … en", "de PESOS"', () => {
+		const tramos = (f, publicacion) => s.parsearResolucionSmvm(fixture(f), { publicacion }).tramos;
+		assert.deepStrictEqual(tramos('smvm-res-4-2013.htm', '2013-07-29'), [{ mes: '2013-08', monto: 3300 }, { mes: '2014-01', monto: 3600 }]);
+		assert.deepStrictEqual(tramos('smvm-res-4-2020.htm', '2020-10-20').slice(0, 2), [{ mes: '2020-10', monto: 18900 }, { mes: '2020-12', monto: 20587.5 }]);
+		assert.deepStrictEqual(tramos('smvm-res-5-2021.htm', '2021-05-06').slice(0, 3), [{ mes: '2021-04', monto: 23544 }, { mes: '2021-05', monto: 24408 }, { mes: '2021-06', monto: 25272 }]);
+		assert.deepStrictEqual(tramos('smvm-res-2-2010.htm', '2010-08-12'), [{ mes: '2010-08', monto: 1740 }, { mes: '2011-01', monto: 1840 }]);
+	});
+
+	it('primer tramo sin fecha: rige desde el mes siguiente a la publicación (Res. 2/2011)', () => {
+		assert.deepStrictEqual(s.parsearResolucionSmvm(fixture('smvm-res-2-2011.htm'), { publicacion: '2011-08-30' }).tramos, [{ mes: '2011-09', monto: 2300 }]);
+		assert.ok(s.parsearResolucionSmvm(fixture('smvm-res-2-2011.htm')).errores.length);
+	});
+
+	it('Res. 3-E/2017: nombre con "-E" y montos de la parte resolutiva, no de los considerandos', () => {
+		const r = s.parsearResolucionSmvm(fixture('smvm-res-3e-2017.htm'), { publicacion: '2017-06-28' });
+		assert.strictEqual(r.norma, 'Resolución 3/2017');
+		assert.deepStrictEqual(r.tramos, [{ mes: '2017-07', monto: 8860 }, { mes: '2018-01', monto: 9500 }, { mes: '2018-07', monto: 10000 }]);
+	});
+
+	it('Res. 4/2021: descarta la errata "1° abril de 2020"', () => {
+		const r = s.parsearResolucionSmvm(fixture('smvm-res-4-2021.htm'), { publicacion: '2021-05-05' });
+		assert.strictEqual(r.tramos[0].mes, '2021-05');
+		assert.ok(!r.tramos.some((t) => t.mes < '2021-02'));
+	});
+
+	it('reemplazarTramos: la que fija pisa desde su primer mes; la modificatoria, solo sus meses', () => {
+		const t = (mes, monto, norma) => ({ mes, monto, norma });
+		const r52021 = [t('2021-04', 23544, '5/2021'), t('2021-06', 25272, '5/2021'), t('2021-11', 28080, '5/2021'), t('2022-02', 29160, '5/2021')];
+		const r112021 = [t('2021-09', 31104, '11/2021'), t('2021-10', 32000, '11/2021'), t('2022-02', 33000, '11/2021')];
+		const fija = s.reemplazarTramos(r52021, r112021);
+		assert.strictEqual(s.smvmVigente(fija, '2021-11').monto, 32000);
+		assert.ok(!fija.some((x) => x.norma === '5/2021' && x.mes >= '2021-09'));
+		const r32018 = [t('2018-12', 11300, '3/2018'), t('2019-03', 11900, '3/2018'), t('2019-06', 12500, '3/2018')];
+		const modif = s.reemplazarTramos(r32018, [t('2019-03', 12500, '1/2019')], { modificatoria: true });
+		assert.deepStrictEqual(modif.map((x) => `${x.mes}:${x.norma}`), ['2018-12:3/2018', '2019-03:1/2019', '2019-06:3/2018']);
+	});
+
 	it('smvmVigente repite el último tramo fijado', () => {
 		const tramos = [{ mes: '2025-08', monto: 322000 }, { mes: '2025-11', monto: 328400 }];
 		assert.strictEqual(s.smvmVigente(tramos, '2025-10').monto, 322000);
@@ -171,6 +208,12 @@ describe('datosPrevisionales - listas de InfoLeg', () => {
 		assert.strictEqual(s.clasificarFila(filas.find((f) => f.id === 429565)), 'smvm'); // Res. 4/2026
 		assert.strictEqual(s.clasificarFila(filas.find((f) => f.id === 402086)), 'smvm'); // Res. 13/2024 "SUMAS - FIJANSE"
 		assert.strictEqual(s.clasificarFila(filas.find((f) => f.id === 429020)), null); // convocatoria
+	});
+
+	it('Res. 1/2019 (modificatoria que nombra al "entonces PRESIDENTE") es SMVM; "CONVOCASE" no', () => {
+		const fila = (texto) => ({ id: 1, texto });
+		assert.strictEqual(s.clasificarFila(fila('Resolución 1 / 2019 CONSEJO NAC DEL EMPLEO PRODUCTIVIDAD Y EL SALARIO M.V.Y M 28-feb-2019 MINISTERIO DE PRODUCCION Y TRABAJO RESOLUCION Nº 3/2018 - MODIFICACION SUSTITUYESE EL INCISO C) DEL ARTICULO 1º DE LA RESOLUCION Nº 3 DE FECHA 8 DE AGOSTO DE 2018 DEL ENTONCES PRESIDENTE DEL ...')), 'smvm');
+		assert.strictEqual(s.clasificarFila(fila('Resolución 1 / 2009 CONSEJO NAC DEL EMPLEO PRODUCTIVIDAD Y EL SALARIO M.V.Y M 24-jul-2009 CONSEJO NACIONAL DEL EMPLEO, LA PRODUCTIVIDAD Y EL SALARIO MINIMO, VITAL Y MOVIL CONSEJEROS - CONVOCASE A SESION PLENARIA ORDINARIA')), null);
 	});
 });
 
@@ -234,6 +277,12 @@ describe('datosPrevisionales - propuesta y diff', () => {
 		assert.strictEqual(s.parsearMonto('180.000.-'), 180000);
 		assert.strictEqual(s.parsearMonto('1105,26'), 1105.26);
 		assert.strictEqual(s.parsearMonto('70.000'), 70000);
+		assert.strictEqual(s.parsearMonto('50.124.26'), 50124.26); // errata de la Res. 260/2022
+		assert.strictEqual(s.parsearMonto('1.042.583'), 1042583);
+	});
+
+	it('Res. ANSES 260/2022: haber mínimo escrito "$ 50.124.26"', () => {
+		assert.strictEqual(s.parsearResolucionAnses(fixture('anses-res-260-2022.htm')).haberMinimo, 50124.26);
 	});
 });
 
