@@ -744,6 +744,9 @@ function textoInforme(r) {
 	return lineas.join('\n');
 }
 
+/** Último mes ('YYYY-MM') de una lista de tramos o resoluciones leídas. */
+const ultimoMes = (xs) => (xs || []).map((x) => x.mes).filter(Boolean).sort().pop() || null;
+
 /** Clave estable de un error de parseo, para no repetir el aviso en cada corrida. */
 const claveError = (e) => `${e.id ?? e.norma}|${(e.errores || []).join(';')}`;
 
@@ -783,7 +786,7 @@ async function runTareaSincronizacion({ destinatario = 'soporte@lawanalytics.app
 			}
 		}
 		// Se guardan los errores vigentes: uno que se resuelve y vuelve a aparecer se avisa de nuevo
-		await auditoria().updateOne({ _id: 'ultimo-aviso' }, { $set: { errores: claves, ultimaCorrida: r.corrida, actualizado: new Date() } }, { upsert: true });
+		await auditoria().updateOne({ _id: 'ultimo-aviso' }, { $set: { errores: claves, erroresNormas: r.errores.map((e) => e.norma).slice(0, 10), resumen: r.resumen, smvmHasta: ultimoMes(r.normas.smvm), ansesHasta: ultimoMes(r.normas.resoluciones), ultimaCorrida: r.corrida, actualizado: new Date() } }, { upsert: true });
 		return { success: true, corrida: r.corrida, resumen: r.resumen, errores: r.errores.length, erroresNuevos };
 	} catch (e) {
 		logger.error(`[datosPrevisionales] Error: ${e.message}`);

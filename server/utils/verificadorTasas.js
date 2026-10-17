@@ -2,6 +2,21 @@ const moment = require('moment');
 const { sendEmail } = require('../services/aws_ses/aws_sesService');
 const logger = require('./logger');
 const TasasConfig = require('../models/tasasConfig');
+const { obtenerEstadoDatosPrevisionales, htmlEstado, textoEstado } = require('../services/audit/estadoDatosPrevisionales');
+
+/**
+ * Asunto del reporte: cubre tasas y datos previsionales. [ALERTA] si hay tasas desactualizadas, errores de scraping o
+ * un problema en los datos previsionales (mes en curso sin datos, cron parado, normas que no se leen); [AVISO] si
+ * solo falta algo menor del mes en curso (salario mínimo, decreto del bono); [OK] si todo está al día.
+ */
+function asuntoReporte({ desactualizadas = 0, conErrores = 0, previsional, fechaActual }) {
+    const nivelPrev = previsional ? previsional.nivel : 'error';
+    const prefijo = desactualizadas || conErrores || nivelPrev === 'alerta' || nivelPrev === 'error' ? '[ALERTA]' : nivelPrev === 'aviso' ? '[AVISO]' : '[OK]';
+    const partes = [desactualizadas ? `${desactualizadas} tasas desactualizadas` : 'tasas al día'];
+    if (conErrores) partes.push(`${conErrores} con errores de scraping`);
+    partes.push(previsional && previsional.titular ? previsional.titular : 'estado previsional no disponible');
+    return `${prefijo} Tasas y datos previsionales ${moment(fechaActual).format('YYYY-MM-DD')} · ${partes.join(' · ')}`;
+}
 /**
  * Verifica que todas las tasas estén actualizadas para la fecha actual y reporta errores de scraping
  * 
@@ -118,6 +133,15 @@ async function verificarTasasActualizadas(options = {}) {
             logger.info(`Se encontraron ${tasasConErrores.length} tasas con errores de scraping no resueltos`);
         }
 
+        // Estado de los datos previsionales (va en el mismo reporte; si falla, el reporte de tasas sale igual)
+        let previsional;
+        try {
+            previsional = await obtenerEstadoDatosPrevisionales();
+        } catch (e) {
+            logger.error(`Error al leer el estado de datosprevisionales: ${e.message}`);
+            previsional = { nivel: 'error', mensaje: e.message, titular: 'estado previsional no disponible' };
+        }
+
         // Enviar email según la configuración
         if (enviarEmail && emailDestinatario) {
             const hayErroresScraping = tasasConErrores.length > 0;
@@ -130,10 +154,10 @@ async function verificarTasasActualizadas(options = {}) {
             if (debeEnviarEmail) {
                 if (todasActualizadas && !hayErroresScraping) {
                     // Todo está bien - enviar email de éxito
-                    await enviarEmailExito(emailDestinatario, resultado, fechaActual);
+                    await enviarEmailExito(emailDestinatario, resultado, fechaActual, previsional);
                 } else if (!todasActualizadas || hayErroresScraping) {
                     // Hay tasas desactualizadas o errores de scraping - enviar alerta
-                    await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, tasasConErrores);
+                    await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, tasasConErrores, previsional);
                 }
             }
         }
@@ -152,6 +176,7 @@ async function verificarTasasActualizadas(options = {}) {
             tasasDesactualizadas: tasasDesactualizadas.length,
             tasasConErrores: tasasConErrores.length,
             hayErroresScraping: tasasConErrores.length > 0,
+            previsional,
             resultado
         };
     } catch (error) {
@@ -170,7 +195,7 @@ async function verificarTasasActualizadas(options = {}) {
  * @param {Date} fechaActual - Fecha actual de la verificación
  * @param {Array} tasasConErrores - Lista de tasas con errores de scraping
  */
-async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTasas, fechaActual, tasasConErrores = []) {
+async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTasas, fechaActual, tasasConErrores = [], previsional = null) {
     try {
         // Crear tabla HTML con las tasas desactualizadas
         let tablaTasasDesactualizadas = `
@@ -320,9 +345,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
             'Alerta de Tasas Desactualizadas' : 
             'Alerta de Errores de Scraping';
             
-        const asunto = tasasDesactualizadas.length > 0 ? 
-            `[ALERTA] Tasas Desactualizadas - ${moment(fechaActual).format('YYYY-MM-DD')}` : 
-            `[ALERTA] Errores de Scraping - ${moment(fechaActual).format('YYYY-MM-DD')}`;
+        const asunto = asuntoReporte({ desactualizadas: tasasDesactualizadas.length, conErrores: tasasConErrores.length, previsional, fechaActual });
             
         const htmlBody = `
         <html>
@@ -354,11 +377,13 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
           
           ${tablaErroresScraping}
           
+          ${htmlEstado(previsional)}
+          
           <div class="note">
             <p><strong>Nota:</strong> Solo se consideran actualizadas las tasas con fecha de hoy (${moment(fechaActual).format('YYYY-MM-DD')}) o fechas futuras. Las tasas con fechas futuras se muestran con los días en positivo (+).</p>
           </div>
           
-          <p>Este es un mensaje automático del sistema de verificación de tasas.</p>
+          <p>Este es un mensaje automático del sistema de verificación de tasas y datos previsionales.</p>
         </body>
         </html>
       `;
@@ -400,9 +425,11 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
         }
         
         textBody += `
+        ${textoEstado(previsional)}
+        
         Nota: Solo se consideran actualizadas las tasas con fecha de hoy o fechas futuras.
         
-        Este es un mensaje automático del sistema de verificación de tasas.
+        Este es un mensaje automático del sistema de verificación de tasas y datos previsionales.
       `;
 
         // Enviar email usando la función proporcionada
@@ -429,7 +456,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
  * @param {Array} tasas - Lista completa de tasas
  * @param {Date} fechaActual - Fecha actual de la verificación
  */
-async function enviarEmailExito(destinatario, tasas, fechaActual) {
+async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = null) {
     try {
         // Crear resumen de todas las tasas
         let tablaTasas = `
@@ -510,7 +537,7 @@ async function enviarEmailExito(destinatario, tasas, fechaActual) {
         tablaFechasFaltantes += '</table>';
 
         // Contenido del email
-        const asunto = `[ÉXITO] Todas las Tasas Actualizadas - ${moment(fechaActual).format('YYYY-MM-DD')}`;
+        const asunto = asuntoReporte({ previsional, fechaActual });
         const htmlBody = `
         <html>
         <head>
@@ -541,11 +568,13 @@ async function enviarEmailExito(destinatario, tasas, fechaActual) {
           </div>
           ` : ''}
           
+          ${htmlEstado(previsional)}
+          
           <div class="note">
             <p><strong>Nota:</strong> Solo se consideran actualizadas las tasas con fecha de hoy (${moment(fechaActual).format('YYYY-MM-DD')}) o fechas futuras. Las tasas con fechas futuras se muestran con los días en positivo (+).</p>
           </div>
           
-          <p>Este es un mensaje automático del sistema de verificación de tasas.</p>
+          <p>Este es un mensaje automático del sistema de verificación de tasas y datos previsionales.</p>
         </body>
         </html>
       `;
@@ -557,8 +586,9 @@ async function enviarEmailExito(destinatario, tasas, fechaActual) {
         Verificación completada: Todas las tasas están actualizadas a la fecha actual (${moment(fechaActual).format('YYYY-MM-DD')}).
         
         ${hayFechasFaltantes ? 'ADVERTENCIA: A pesar de que todas las tasas están actualizadas para la fecha actual, existen fechas faltantes en el historial.\n' : ''}
+        ${textoEstado(previsional)}
         
-        Este es un mensaje automático del sistema de verificación de tasas.
+        Este es un mensaje automático del sistema de verificación de tasas y datos previsionales.
       `;
 
         // Enviar email usando la función proporcionada
@@ -611,6 +641,7 @@ function programarVerificacionTasas(cronManager, options = {}) {
 }
 
 module.exports = {
+    asuntoReporte,
     verificarTasasActualizadas,
     programarVerificacionTasas
 };
