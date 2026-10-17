@@ -93,9 +93,25 @@ La aplicación incluye varias tareas programadas que se ejecutan automáticament
 | 18 | `eliminar-files`                     | Limpieza de archivos en server/files           | Diario 2:00 AM  |
 | 19 | `sync-stats`                         | Sincronización de estadísticas                  | Diario 3:00 AM  |
 | 20 | `analysis-stats`                     | Análisis de estadísticas                        | Diario 4:00 AM  |
-| 21 | `verificacion-tasas-matutina`        | Verificación matutina de tasas                  | Diario 8:00 AM  |
-| 22 | `verificacion-tasas-ciclica`         | Verificación cíclica de tasas                   | Cada 6 horas    |
-| 23 | `verificacion-tasas-diaria`          | Verificación diaria completa de tasas           | Diario 11:00 PM |
+| 21 | `verificacion-tasas-matutina`        | Reporte de tasas y datos previsionales (siempre) | Diario 9:00 AM  |
+| 22 | `verificacion-tasas-ciclica`         | Mismo reporte, solo si falla alguna tasa        | 7:55, 9:55, 11:55, 13:55, 15:55, 21:55 |
+| 23 | `verificacion-tasas-diaria`          | Reporte completo de tasas y datos previsionales (siempre) | Diario 11:00 PM |
+| —  | `sync-datos-previsionales`           | Sincroniza `datosprevisionales` desde InfoLeg (ANSES, bonos, SMVM) | Diario 12:20 y 18:20 |
+| —  | `audit-datos-previsionales`          | Auditoría de cobertura del mes próximo          | Último día del mes 22:00 |
+
+> La numeración y los horarios de las filas 1–20 son históricos; la programación vigente está en
+> `server/config/cronConfig.js` (zona horaria `America/Argentina/Buenos_Aires`).
+
+### Datos previsionales
+
+La colección `datosprevisionales` (un documento por mes con movilidad, haberes mínimo y máximo, bases imponibles, PBU,
+PUAM, bono, salario mínimo y suplemento del 82 %) se mantiene al día leyendo de InfoLeg las resoluciones mensuales de
+ANSES (vínculos de la ley 24.241 y del DNU 274/2024), los decretos de bono y las resoluciones del Consejo del Salario.
+Solo completa meses y campos vacíos, deja todo auditado y revertible, y su estado (último mensual con datos, mes en curso,
+pendientes, corridas del cron) va en el reporte diario por correo, cuyo asunto es
+`[OK|AVISO|ALERTA] Tasas y datos previsionales <fecha> · …`.
+
+Documentación completa: **[docs/DATOS_PREVISIONALES.md](docs/DATOS_PREVISIONALES.md)**.
 
 ### Gestión de archivos
 
