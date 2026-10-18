@@ -217,6 +217,16 @@ describe('datosPrevisionales - listas de InfoLeg', () => {
 	});
 });
 
+describe('datosPrevisionales - disposición de índices de remuneraciones citada por ANSES', () => {
+	it('Res. 284/2026 cita la Disposición 10/2026 SSS (10/8/2026) y la Res. 317/2025 la 19/2025 (12/8/2025)', () => {
+		assert.deepStrictEqual(s.parsearResolucionAnses(fixture('anses-res-284-2026.htm')).disposicionIndices, { norma: 'Disposición 10/2026 SUBSECRETARIA DE SEGURIDAD SOCIAL', fecha: '2026-08-10' });
+		assert.deepStrictEqual(s.parsearResolucionAnses(fixture('anses-res-317-2025.htm')).disposicionIndices, { norma: 'Disposición 19/2025 SUBSECRETARIA DE SEGURIDAD SOCIAL', fecha: '2025-08-12' });
+	});
+	it('una resolución sin la cita no trae disposición (Res. 62/2024)', () => {
+		assert.strictEqual(s.parsearResolucionAnses(fixture('anses-res-62-2024.htm')).disposicionIndices, undefined);
+	});
+});
+
 describe('datosPrevisionales - propuesta y diff', () => {
 	const existentes = {
 		'2026-05': { haberMinimoJubilacion: 393174.1, topePC: 81780.11, movilidadGeneral: 1.0338 },
@@ -225,7 +235,7 @@ describe('datosPrevisionales - propuesta y diff', () => {
 	const bonos = [{ id: 1, url: 'ub', norma: 'Decreto 399/2026', tipo: 'bono extraordinario previsional', escalonado: false, pagos: [{ mes: '2026-06', monto: 70000 }] }];
 	const smvm = [{ mes: '2026-05', monto: 363000, norma: 'Resolución 9/2025', url: 'us' }, { mes: '2026-06', monto: 367800, norma: 'Resolución 9/2025', url: 'us' }];
 
-	it('arma el mes con las reglas: pensión = jubilación, topePC encadenado, suplemento 82 %', () => {
+	it('arma el mes con las reglas: pensión = jubilación, topePC = 0,208 haberes mínimos, suplemento 82 %', () => {
 		const { meses } = s.construirPropuesta({ resoluciones, bonos, smvm, existentes, desde: '2026-06' });
 		assert.strictEqual(meses.length, 1);
 		const p = meses[0].propuesto;
@@ -233,7 +243,9 @@ describe('datosPrevisionales - propuesta y diff', () => {
 		assert.strictEqual(p.haberMinimoPension, p.haberMinimoJubilacion);
 		assert.strictEqual(p.haberMaximoPension, 2713948.17);
 		assert.strictEqual(p.maximoImponible, 4414652.38);
-		assert.strictEqual(p.topePC, 83890.04); // 81.780,11 × 1,0258
+		assert.strictEqual(p.topePC, Math.round(0.208 * p.haberMinimoJubilacion * 100) / 100);
+		assert.strictEqual(p.topePC, 83890.14); // el valor cargado para 6/2026 (no el encadenado 81.780,11 × 1,0258 = 83.890,04)
+		assert.strictEqual(p.disposicionIndices, 'Disposición 5/2026 SUBSECRETARIA DE SEGURIDAD SOCIAL (2026-05-07)');
 		assert.strictEqual(p.bono, 70000);
 		assert.strictEqual(p.salarioMVM, 367800);
 		assert.strictEqual(p.suplemento82SMVM, 0); // 0,82 × 367.800 < haber mínimo

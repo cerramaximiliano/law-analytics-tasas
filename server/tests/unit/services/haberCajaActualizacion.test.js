@@ -43,6 +43,20 @@ describe('haberCajaActualizacion - fechas clave del haber de caja', () => {
 		assert.match(dic.norma, /RIPTE\(2026-09\) \/ RIPTE\(2026-06\)/);
 	});
 
+	it('disposición SSS: cubre el primer trimestre posterior a su fecha (5/2026 → 6/2026; 10/2026 → 9/2026)', () => {
+		assert.strictEqual(s.trimestreDeDisposicion('2026-05-07'), '2026-06');
+		assert.strictEqual(s.trimestreDeDisposicion('2026-08-10'), '2026-09');
+		assert.strictEqual(s.trimestreDeDisposicion('2025-11-20'), '2025-12');
+	});
+
+	it('disposición SSS citada por ANSES confirma el trimestre provisorio y sus meses', () => {
+		const indice = { '2026-12': { valor: 220, provisorio: true }, '2027-01': { valor: 220, provisorio: true }, '2026-09': { valor: 200, provisorio: false } };
+		const c = s.confirmacionesLey27260(indice, [{ texto: 'Disposición 14/2026 SUBSECRETARIA DE SEGURIDAD SOCIAL (2026-11-09)', citadaEn: 'Resolución 330/2026' }]);
+		assert.deepStrictEqual(c.map((x) => x.periodo), ['2026-12', '2027-01']);
+		assert.match(c[0].norma, /^Disposición 14\/2026 SUBSECRETARIA DE SEGURIDAD SOCIAL, citada en la Resolución 330\/2026 de ANSES/);
+		assert.deepStrictEqual(s.confirmacionesLey27260(indice, [{ texto: 'Disposición 10/2026 SUBSECRETARIA DE SEGURIDAD SOCIAL (2026-08-10)' }]), []);
+	});
+
 	it('índice ley 27.260: sin RIPTE del trimestre queda pendiente (null)', () => {
 		assert.strictEqual(s.indiceLey27260('2026-12', { '2026-09': { valor: 200 } }, { '2026-06': { valor: 1100 } }), null);
 	});

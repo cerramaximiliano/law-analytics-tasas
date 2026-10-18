@@ -6,8 +6,9 @@
  *  - `topePC` (mensual desde 3/2009): 0,208 × haberMinimoJubilacion(m), al centavo (Res. SSS 6/09, regl. art. 24/26 pto. 6).
  *  - `pcPctPorAnio`, `papPctPorAnio` (1,5 %, ley 26.222) y `factorSuplementoAltas` (1 desde 3/2009): los del mes anterior.
  *  - `indicesmensuales.remLey27260` (Dec. 807/16): en marzo, junio, septiembre y diciembre = índice(m−3) × RIPTE(m−3) /
- *    RIPTE(m−6), provisorio hasta la Disposición de la Subsecretaría de Seguridad Social (verificado exacto en los 12
- *    trimestres de 2023–2026); los demás meses repiten el valor vigente.
+ *    RIPTE(m−6) (verificado exacto en los 12 trimestres de 2023–2026); los demás meses repiten el valor vigente. Queda
+ *    provisorio hasta que una resolución de ANSES cita la Disposición de la Subsecretaría de Seguridad Social del trimestre
+ *    (`datosprevisionales.disposicionIndices`, lo lee el sincronizador).
  * Solo completa: un valor ya cargado que no coincide con el cálculo queda como conflicto, no se pisa. Cada cambio queda en
  * `datosprevisionales-sincronizaciones` (corrida `haberCaja-auto-<fecha>`) y se revierte con `revertir(corrida)`.
  */
@@ -70,6 +71,35 @@ function indiceLey27260(p, indice, ripte) {
 	};
 }
 
+/** Primer trimestre (marzo, junio, septiembre, diciembre) posterior a la fecha de la disposición: el que cubre. */
+function trimestreDeDisposicion(fecha) {
+	let p = sumar(String(fecha).slice(0, 7), 1);
+	while (!MESES_TRIMESTRE.has(p.slice(5, 7))) p = sumar(p, 1);
+	return p;
+}
+
+/**
+ * Meses provisorios del índice remLey27260 que confirma una Disposición de la Subsecretaría de Seguridad Social citada por
+ * una resolución de ANSES (pura). `disposiciones`: [{ texto: 'Disposición N/AAAA … (AAAA-MM-DD)', citadaEn }].
+ * @returns {{ periodo: string, norma: string }[]}
+ */
+function confirmacionesLey27260(indice, disposiciones) {
+	const porTrimestre = {};
+	for (const d of disposiciones) {
+		const m = /^(.*) \((\d{4}-\d{2}-\d{2})\)$/.exec(d.texto || '');
+		if (m) porTrimestre[trimestreDeDisposicion(m[2])] = porTrimestre[trimestreDeDisposicion(m[2])] || { norma: m[1], citadaEn: d.citadaEn };
+	}
+	const out = [];
+	for (const [p, v] of Object.entries(indice)) {
+		if (!v || !v.provisorio) continue;
+		let q = p;
+		while (!MESES_TRIMESTRE.has(q.slice(5, 7))) q = sumar(q, -1);
+		const d = porTrimestre[q];
+		if (d) out.push({ periodo: p, norma: `${d.norma}${d.citadaEn ? `, citada en la ${d.citadaEn} de ANSES` : ''} (valor: índice(m−3) × RIPTE(m−3) / RIPTE(m−6))` });
+	}
+	return out.sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
+}
+
 /**
  * @param {{ aplicar?: boolean, hasta?: string, db?: import('mongodb').Db }} [o]
  * @returns {Promise<{ corrida: string, escritos: number, cambios: object[], conflictos: object[], pendientes: string[] }>}
@@ -87,6 +117,7 @@ async function actualizarHaberCaja({ aplicar = false, hasta = null, db = mongoos
 
 	// 1. datosprevisionales mes a mes (cada mes calculado sirve de anterior al siguiente)
 	let anterior = null;
+	const disposiciones = docs.filter((d) => d.disposicionIndices).map((d) => ({ texto: d.disposicionIndices, citadaEn: d.norma }));
 	for (const d of docs) {
 		const p = mesDe(d.fecha);
 		if (p > ultimo) break;
@@ -137,6 +168,15 @@ async function actualizarHaberCaja({ aplicar = false, hasta = null, db = mongoos
 			}
 		}
 	}
+	// 3. trimestres provisorios confirmados por la Disposición SSS que citan las resoluciones de ANSES
+	for (const c of confirmacionesLey27260(indice, disposiciones)) {
+		cambios.push({ periodo: c.periodo, campo: 'indicesmensuales.remLey27260', valor: indice[c.periodo].valor, confirmado: c.norma });
+		if (aplicar) {
+			const ahora = new Date();
+			await im.updateOne({ serie: 'remLey27260', periodo: c.periodo }, { $set: { provisorio: false, norma: c.norma, updatedAt: ahora } });
+			await auditoria.insertOne({ corrida, fecha: moment.utc(c.periodo, 'YYYY-MM').toDate(), campo: 'indicesmensuales.remLey27260.confirmacion', valorAnterior: { provisorio: true, norma: indice[c.periodo].norma || null }, valorNuevo: { provisorio: false, norma: c.norma }, existia: true, creado: ahora });
+		}
+	}
 	const escritos = aplicar ? cambios.length : 0;
 	if (cambios.length || conflictos.length || pendientes.length) logger.info(`[haberCaja] ${aplicar ? 'aplicado' : 'prueba'} ${corrida}: ${cambios.length} cambios, ${conflictos.length} conflictos, ${pendientes.length} pendientes`);
 	return { corrida, escritos, cambios, conflictos, pendientes };
@@ -149,6 +189,7 @@ async function revertir(corrida, { db = mongoose.connection.db } = {}) {
 	const cambios = await auditoria.find({ corrida, revertido: { $ne: true } }).toArray();
 	for (const c of cambios) {
 		if (c.campo === 'indicesmensuales.remLey27260') await db.collection('indicesmensuales').deleteOne({ serie: 'remLey27260', periodo: mesDe(c.fecha) });
+		else if (c.campo === 'indicesmensuales.remLey27260.confirmacion') await db.collection('indicesmensuales').updateOne({ serie: 'remLey27260', periodo: mesDe(c.fecha) }, { $set: { provisorio: true, norma: c.valorAnterior?.norma ?? null } });
 		else await db.collection('datosprevisionales').updateOne({ fecha: c.fecha }, c.existia ? { $set: { [c.campo]: c.valorAnterior } } : { $unset: { [c.campo]: '' } });
 		await auditoria.updateOne({ _id: c._id }, { $set: { revertido: true, revertidoEn: new Date() } });
 	}
@@ -158,10 +199,10 @@ async function revertir(corrida, { db = mongoose.connection.db } = {}) {
 /** Texto para el email del sincronizador. */
 function textoHaberCaja(r) {
 	const l = [];
-	for (const c of r.cambios) l.push(`  ${c.periodo} ${c.campo}: ${typeof c.valor === 'object' ? `${Object.keys(c.valor).length} categorías` : c.valor}${c.provisorio ? ' (provisorio)' : ''}`);
+	for (const c of r.cambios) l.push(`  ${c.periodo} ${c.campo}: ${typeof c.valor === 'object' ? `${Object.keys(c.valor).length} categorías` : c.valor}${c.provisorio ? ' (provisorio)' : ''}${c.confirmado ? ` (confirmado: ${c.confirmado})` : ''}`);
 	for (const c of r.conflictos) l.push(`  CONFLICTO ${c.periodo} ${c.campo}: cargado ${JSON.stringify(c.cargado)} · calculado ${JSON.stringify(c.calculado)}`);
 	for (const p of r.pendientes) l.push(`  PENDIENTE ${p}`);
 	return l.length ? `Haber de caja (corrida ${r.corrida}):\n${l.join('\n')}` : '';
 }
 
-module.exports = { calcularMes, indiceLey27260, actualizarHaberCaja, revertir, textoHaberCaja, DESDE_RENTAS_MENSUALES };
+module.exports = { calcularMes, indiceLey27260, trimestreDeDisposicion, confirmacionesLey27260, actualizarHaberCaja, revertir, textoHaberCaja, DESDE_RENTAS_MENSUALES };

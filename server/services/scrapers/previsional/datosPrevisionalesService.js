@@ -65,6 +65,7 @@ const CAMPOS = {
 	pbu: 0.005,
 	puam: 0.005,
 	topePC: 0.005,
+	disposicionIndices: null,
 	bono: 0.005,
 	bonoNorma: null,
 	bonoEscalones: null,
@@ -248,6 +249,11 @@ function parsearResolucionAnses(html) {
 		} else if (/Prestaci[oó]n B[aá]sica Universal/i.test(t) && r.pbu === null) r.pbu = montos[0];
 		else if (/Pensi[oó]n Universal para el Adulto Mayor/i.test(t) && r.puam === null) r.puam = montos[0];
 	}
+
+	// Disposición de la Subsecretaría de Seguridad Social con los índices de actualización de remuneraciones que cita la
+	// resolución (Dec. 807/16, ley 27.260): confirma el trimestre del índice remLey27260 (haberCajaActualizacionService)
+	const disp = texto.match(/SUBSECRETAR[IÍ]A DE SEGURIDAD SOCIAL,? por Disposici[oó]n N[°º]?\s*DI-(\d{4})-(\d+)-APN-SSSS#\w+,? (?:de fecha|del) (\d{1,2}) de (\w+) de (\d{4})/i);
+	if (disp && periodo(disp[4], disp[5])) r.disposicionIndices = { norma: `Disposición ${Number(disp[2])}/${disp[1]} SUBSECRETARIA DE SEGURIDAD SOCIAL`, fecha: `${periodo(disp[4], disp[5])}-${disp[3].padStart(2, '0')}` };
 
 	if (!r.norma) r.errores.push('no se encontró el número de resolución');
 	if (!r.mes) r.errores.push('no se encontró el mes de vigencia');
@@ -479,7 +485,12 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 					avisosMes.push(`haber mínimo / anterior = ${ratio.toFixed(4)} no coincide con la movilidad ${prop.movilidadGeneral}`);
 				}
 			}
-			if (prop.movilidadGeneral && anterior && anterior.topePC > 0) prop.topePC = round(anterior.topePC * prop.movilidadGeneral, 2);
+			// tope de la PC: 0,208 haberes mínimos (Res. SSS 6/09, regl. art. 24/26 pto. 6), no el anterior encadenado por la
+			// movilidad (18/10/2026: el encadenado se corría 1–11 centavos de la regla)
+			const minMes = prop.haberMinimoJubilacion !== undefined ? prop.haberMinimoJubilacion : (existentes[p] || {}).haberMinimoJubilacion;
+			if (minMes > 0) prop.topePC = round(0.208 * minMes, 2);
+			const disp = res.map((r) => r.disposicionIndices).find(Boolean);
+			if (disp) prop.disposicionIndices = `${disp.norma} (${disp.fecha})`;
 			prop.norma = res.map((r) => r.norma).join(' y ');
 			prop.links = res.map((r) => r.url).filter(Boolean);
 			fuentes.anses = prop.links;
