@@ -6,6 +6,8 @@
  *   node scripts/haberCaja/cargarDatosHaberCaja.js --apply --forzar        (además pisa valores distintos)
  *   node scripts/haberCaja/cargarDatosHaberCaja.js --campos=pbuAltas,rentasAutonomos --desde=2019-01 --hasta=2020-12
  *   node scripts/haberCaja/cargarDatosHaberCaja.js --revertir=<corrida>
+ *   --exacto   compara sin la tolerancia de medio centavo (un valor sin redondear como 6.558,05623 no es igual al publicado
+ *              6.558,06: 246 valores de 2009–2019 quedaron así en la primera carga del 18/10/2026)
  *
  * Cada cambio queda en `datosprevisionales-sincronizaciones` (mismo formato que el sincronizador de InfoLeg), y la
  * norma de cada campo se guarda en `normas.<campo>`.
@@ -20,7 +22,8 @@ const svc = require('../../server/services/scrapers/previsional/datosPrevisional
 const arg = (n) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=') || null;
 const flag = (n) => process.argv.includes(`--${n}`);
 const get = (o, ruta) => ruta.split('.').reduce((x, k) => (x === undefined || x === null ? undefined : x[k]), o);
-const iguales = (a, b) => (typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) <= Math.max(0.005, Math.abs(b) * 1e-12) : JSON.stringify(a) === JSON.stringify(b));
+const TOL = process.argv.includes('--exacto') ? 1e-9 : 0.005;
+const iguales = (a, b) => (typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) <= Math.max(TOL, Math.abs(b) * 1e-12) : JSON.stringify(a) === JSON.stringify(b));
 const vacio = (v) => v === undefined || v === null || v === '' || (typeof v === 'number' && v === 0);
 
 (async () => {
