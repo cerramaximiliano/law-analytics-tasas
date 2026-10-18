@@ -19145,12 +19145,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19160,11 +19161,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19273,12 +19275,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19288,11 +19291,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19401,12 +19405,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19416,11 +19421,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19529,12 +19535,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19544,11 +19551,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19657,12 +19665,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19672,11 +19681,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19785,12 +19795,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19800,11 +19811,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -19913,12 +19925,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -19928,11 +19941,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -20041,12 +20055,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -20056,11 +20071,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -20169,12 +20185,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -20184,11 +20201,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -20297,12 +20315,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -20312,11 +20331,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
@@ -20425,12 +20445,13 @@
     "valorAMPOoMOPRE": 80,
     "maximoImponible": 4800,
     "baseImponibleMinima": 240,
-    "haberMinimoJubilacion": 200,
+    "haberMinimoJubilacion": 150,
     "haberMaximoJubilacion": 3100,
     "topePC": 80,
     "factorSuplementoAltas": 1,
     "pcPctPorAnio": 1.5,
-    "papPctPorAnio": 0.85
+    "papPctPorAnio": 0.85,
+    "haberMinimoCobro": 200
    },
    "normas": {
     "indicesRemuneraciones.ley27260": "Res. SSS 6/2016 / Res. ANSES 298/2016 (Dec. 807/16)",
@@ -20440,11 +20461,12 @@
     "valorAMPOoMOPRE": "Res. SSS 27/97 (BO 9/4/1997): AMPO 4-9/1997; desde 29/8/1997 MOPRE $80 (DNU 833/97) sin cambios hasta 2/2009 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=42601",
     "maximoImponible": "art. 9 Ley 24.241 orig.: 60 AMPO/MOPRE (Res. SSS 27/1997) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "baseImponibleMinima": "art. 9 Ley 24.241: 3 AMPO/MOPRE (t.o. Ley 26.222 desde 4/2007: 3 MOPRE) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "haberMinimoJubilacion": "Dec. 1275/02: subsidio hasta $200 (haber mínimo de cobro, no haber mínimo legal); Atlas sigue en 150 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991",
+    "haberMinimoJubilacion": "haber mínimo legal $150 (vigente desde 1992; art. 125 Ley 24.241 / Ley 24.463); el Dec. 1275/02 no lo modificó: el subsidio va en haberMinimoCobro — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "haberMaximoJubilacion": "art. 9 inc. 3 Ley 24.463 ($3.100; B.O. 30/3/1995 — Atlas lo aplica desde 7/1994) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=16102",
     "topePC": "art. 26 Ley 24.241: 1 AMPO (luego MOPRE) por año de servicios computados — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
     "pcPctPorAnio": "art. 24 Ley 24.241 — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
-    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639"
+    "papPctPorAnio": "art. 30 Ley 24.241 orig. → Ley 26.222 art. 2 + Dec. 313/07 art. 1 c) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=639",
+    "haberMinimoCobro": "Dec. 1275/02: subsidio hasta completar $200 (haber mínimo de cobro, no haber mínimo legal) — https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id=75991"
    },
    "evidencias": {
     "valorAMPOoMOPRE": [
