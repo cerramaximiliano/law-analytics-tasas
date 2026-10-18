@@ -810,14 +810,23 @@ async function runTareaSincronizacion({ destinatario = 'soporte@lawanalytics.app
 	try {
 		const r = await sincronizarDatosPrevisionales({ aplicar: true });
 		if (r.resumen.conflictos) logger.warn(`[datosPrevisionales] ${r.resumen.conflictos} conflictos sin aplicar (ver modo prueba del script)`);
+		// haber de caja: lo que se deriva del mes nuevo (rentas de autónomos, tope de la PC, índice de la ley 27.260)
+		let hc = null;
+		try {
+			hc = await require('./haberCajaActualizacionService').actualizarHaberCaja({ aplicar: true });
+		} catch (e) {
+			logger.error(`[datosPrevisionales] haber de caja: ${e.message}`);
+		}
+		const textoHc = hc ? require('./haberCajaActualizacionService').textoHaberCaja(hc) : '';
 		if (r.errores.length) logger.error(`[datosPrevisionales] ${r.errores.length} normas no parsearon: ${r.errores.map((e) => e.norma).join(', ')}`);
 		const claves = r.errores.map(claveError);
 		const previo = await auditoria().findOne({ _id: 'ultimo-aviso' });
 		const avisadas = new Set(previo?.errores || []);
 		const erroresNuevos = claves.filter((k) => !avisadas.has(k)).length;
-		if (r.resumen.escritos || erroresNuevos) {
+		if (r.resumen.escritos || erroresNuevos || (hc && hc.escritos)) {
 			const { sendEmail } = require('../../aws_ses/aws_sesService');
-			const cuerpo = `Corrida ${r.corrida} (desde ${r.desde}).\nPara revertir: node scripts/sincronizarDatosPrevisionales.js --revertir=${r.corrida}\n\n${textoInforme(r)}`;
+			const reversionHc = hc && hc.escritos ? `\nHaber de caja: node scripts/haberCaja/actualizarHaberCaja.js --revertir=${hc.corrida}` : '';
+			const cuerpo = `Corrida ${r.corrida} (desde ${r.desde}).\nPara revertir: node scripts/sincronizarDatosPrevisionales.js --revertir=${r.corrida}${reversionHc}\n\n${textoInforme(r)}${textoHc ? `\n\n${textoHc}` : ''}`;
 			try {
 				await sendEmail(destinatario, asuntoAviso(r, erroresNuevos), `<pre style="font-family:monospace">${cuerpo.replace(/</g, '&lt;')}</pre>`, cuerpo, []);
 			} catch (e) {
@@ -825,8 +834,8 @@ async function runTareaSincronizacion({ destinatario = 'soporte@lawanalytics.app
 			}
 		}
 		// Se guardan los errores vigentes: uno que se resuelve y vuelve a aparecer se avisa de nuevo
-		await auditoria().updateOne({ _id: 'ultimo-aviso' }, { $set: { errores: claves, erroresNormas: r.errores.map((e) => e.norma).slice(0, 10), resumen: r.resumen, smvmHasta: ultimoMes(r.normas.smvm), ansesHasta: ultimoMes(r.normas.resoluciones), ultimaCorrida: r.corrida, actualizado: new Date() } }, { upsert: true });
-		return { success: true, corrida: r.corrida, resumen: r.resumen, errores: r.errores.length, erroresNuevos };
+		await auditoria().updateOne({ _id: 'ultimo-aviso' }, { $set: { errores: claves, erroresNormas: r.errores.map((e) => e.norma).slice(0, 10), resumen: r.resumen, smvmHasta: ultimoMes(r.normas.smvm), ansesHasta: ultimoMes(r.normas.resoluciones), ultimaCorrida: r.corrida, haberCaja: hc ? { corrida: hc.corrida, escritos: hc.escritos, conflictos: hc.conflictos.length, pendientes: hc.pendientes } : null, actualizado: new Date() } }, { upsert: true });
+		return { success: true, corrida: r.corrida, resumen: r.resumen, errores: r.errores.length, erroresNuevos, haberCaja: hc ? { corrida: hc.corrida, escritos: hc.escritos, conflictos: hc.conflictos.length, pendientes: hc.pendientes.length } : null };
 	} catch (e) {
 		logger.error(`[datosPrevisionales] Error: ${e.message}`);
 		return { success: false, error: e.message };
