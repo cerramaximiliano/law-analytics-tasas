@@ -44,7 +44,7 @@ const vacio = (v) => v === undefined || v === null || v === '' || (typeof v === 
   const corrida = `haberCaja-${moment.utc().format('YYYYMMDD-HHmmss')}`;
   console.log(`=== haber de caja · ${aplicar ? (forzar ? 'APLICAR + FORZAR' : 'APLICAR (solo vacíos)') : 'PRUEBA'} · ${archivo}`);
 
-  const res = { nuevos: 0, iguales: 0, conflictos: 0, escritos: 0, sinDoc: 0 };
+  const res = { nuevos: 0, iguales: 0, conflictos: 0, normas: 0, escritos: 0, sinDoc: 0 };
   const conflictosPorCampo = {};
   for (const m of meses) {
     if (m.periodo < desde || m.periodo > hasta) continue;
@@ -56,7 +56,17 @@ const vacio = (v) => v === undefined || v === null || v === '' || (typeof v === 
     for (const [campo, valor] of Object.entries(m.campos)) {
       if (campos && !campos.some((c) => campo === c || campo.startsWith(`${c}.`))) continue;
       const actual = get(doc, campo);
-      if (actual !== undefined && iguales(actual, valor)) { res.iguales++; continue; }
+      if (actual !== undefined && iguales(actual, valor)) {
+        res.iguales++;
+        // valor igual pero la norma falta o cambió: se completa solo la norma (antes se salteaba y la norma no llegaba)
+        const nActual = get(doc, `normas.${campo}`);
+        if (m.normas[campo] && nActual !== m.normas[campo]) {
+          res.normas++;
+          $set[`normas.${campo}`] = m.normas[campo];
+          cambios.push({ campo: `normas.${campo}`, actual: nActual });
+        }
+        continue;
+      }
       const conflicto = !vacio(actual);
       if (conflicto) {
         res.conflictos++;
