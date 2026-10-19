@@ -107,6 +107,14 @@ const cronConfig = {
         diario: '0 3 * * *'  // 3:00 AM diario, fuera del horario de scraping normal
     },
 
+    // Calendario de días inhábiles judiciales (plazos automáticos): control de
+    // cobertura y días sin verificar (lunes) y carga del año siguiente (1/9).
+    // Solo corren con FERIADOS_TAREAS=true (ver services/feriados/feriadosService.js).
+    feriados: {
+        control: '15 9 * * 1',
+        generarAnio: '30 9 1 9 *'
+    },
+
     manager_files: {
         cleanup: '0 0 * * *'
     },

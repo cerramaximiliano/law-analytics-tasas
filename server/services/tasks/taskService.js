@@ -28,6 +28,7 @@ const { sincronizarIusSalta } = require('../scrapers/iusSaltaSyncService');
 const { sincronizarJusNeuquen } = require('../scrapers/jusNeuquenSyncService');
 const { sincronizarJusRioNegro } = require('../scrapers/jusRioNegroSyncService');
 const { sincronizarJusMendoza } = require('../scrapers/jusMendozaSyncService');
+const { controlarCalendario, generarAnioSiguiente } = require('../feriados/feriadosService');
 
 // Colección de tareas programadas
 const tasks = new Map();
@@ -639,6 +640,13 @@ function initializeTasks() {
   scheduleTask('sync-jus-mendoza', cronConfig.jus.mendoza, () => sincronizarJusMendoza(),
     'Sincroniza los dos JUS de Mendoza (honorarios y competencia por cuantía)')
 
+
+  // Calendario de días inhábiles judiciales (plazos automáticos).
+  scheduleTask('feriados-control', cronConfig.feriados.control, () => controlarCalendario(),
+    'Controla la cobertura del calendario judicial y los días sin verificar (avisa por correo)')
+
+  scheduleTask('feriados-generar-anio', cronConfig.feriados.generarAnio, () => generarAnioSiguiente(),
+    'Carga el calendario judicial del año siguiente (solo lo que falta) y avisa qué verificar')
 
   programarVerificacionTasas(module.exports, {
     cronExpression: cronConfig.verificacion.matutina,
