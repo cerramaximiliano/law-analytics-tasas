@@ -11,11 +11,12 @@
  *     de feriados-calendario.js (solo inserta lo que falta) y avisa qué quedó
  *     sin verificar. También la dispara el control si la cobertura es corta.
  *
- * Base: la maestra del calendario. Hasta que pase a Atlas (P8 de plazos
- * automáticos, la-ads/docs/producto/plazos-automaticos.md) la maestra es el
- * rs0: por eso las dos tareas solo corren con FERIADOS_TAREAS=true, que se
- * prende en el mismo deploy de P8. FERIADOS_URLDB permite apuntar a otra base
- * (default: la de la app, URLDB = Atlas).
+ * Base: la maestra del calendario, Atlas desde el 19/10 (P8 de plazos
+ * automáticos, la-ads/docs/producto/plazos-automaticos.md). Las dos tareas
+ * corren por defecto; FERIADOS_TAREAS=false las apaga. FERIADOS_URLDB permite
+ * apuntar a otra base (default: la de la app, URLDB = Atlas). Ojo: app.js
+ * reescribe el .env desde Secrets Manager al arrancar, así que un interruptor
+ * puesto a mano en el .env se pierde con el reinicio.
  */
 
 'use strict';
@@ -30,7 +31,7 @@ const COBERTURA_MIN_DIAS = 120; // los plazos llegan a 60 días; con 120 hay mar
 const PROXIMOS_DIAS = 90;
 const ADMIN_URL = 'https://dashboard.lawanalytics.app/admin/causas/plazos?tab=feriados';
 
-const activo = () => process.env.FERIADOS_TAREAS === 'true';
+const activo = () => process.env.FERIADOS_TAREAS !== 'false';
 
 let conexionPropia = null;
 async function coleccion() {
@@ -53,7 +54,7 @@ async function avisar(asunto, lineas) {
  * @param {Object} [opts] — { anio, avisarSiNada = false }
  */
 async function generarAnioSiguiente({ anio = null, avisarSiNada = false } = {}) {
-  if (!activo()) return { omitido: 'FERIADOS_TAREAS apagado' };
+  if (!activo()) return { omitido: 'FERIADOS_TAREAS=false' };
   const c = await coleccion();
   const y = anio || new Date().getFullYear() + 1;
   const r = await cal.generarAnio(c, y, { aplicar: true });
@@ -72,7 +73,7 @@ async function generarAnioSiguiente({ anio = null, avisarSiNada = false } = {}) 
 
 /** Control semanal: cobertura y días sin verificar próximos. Avisa solo si hay algo. */
 async function controlarCalendario() {
-  if (!activo()) return { omitido: 'FERIADOS_TAREAS apagado' };
+  if (!activo()) return { omitido: 'FERIADOS_TAREAS=false' };
   const c = await coleccion();
   let cob = await cal.cobertura(c);
   let generado = null;

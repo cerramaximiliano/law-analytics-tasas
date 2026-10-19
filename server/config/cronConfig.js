@@ -109,7 +109,7 @@ const cronConfig = {
 
     // Calendario de días inhábiles judiciales (plazos automáticos): control de
     // cobertura y días sin verificar (lunes) y carga del año siguiente (1/9).
-    // Solo corren con FERIADOS_TAREAS=true (ver services/feriados/feriadosService.js).
+    // FERIADOS_TAREAS=false las apaga (ver services/feriados/feriadosService.js).
     feriados: {
         control: '15 9 * * 1',
         generarAnio: '30 9 1 9 *'
