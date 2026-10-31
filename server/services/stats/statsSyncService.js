@@ -257,6 +257,61 @@ async function countByUser(name, collectionName) {
   return byUser;
 }
 
+// Respaldo de la colección storageconfig; mismos valores que law-analytics-server/config/storageConfig.js
+const STORAGE_SIZES_FALLBACK = { contact: 2048, folder: 10240, folderLinked: 51200, calculator: 5120 };
+
+/** storage.* a partir de lo archivado. Mismo criterio que law-analytics-server/services/storageService.js. */
+function storageBytes(archived, sizes) {
+  const folders = (archived.foldersLinked || 0) * sizes.folderLinked
+    + ((archived.folders || 0) - (archived.foldersLinked || 0)) * sizes.folder;
+  const contacts = (archived.contacts || 0) * sizes.contact;
+  const calculators = (archived.calculators || 0) * sizes.calculator;
+  return { folders, contacts, calculators, total: folders + contacts + calculators };
+}
+
+/**
+ * Archivados por usuario para el recuento de almacenamiento, en 3 agregaciones.
+ * @returns {Promise<Map<string, {folders, foldersLinked, contacts, calculators}>>}
+ */
+async function archivedByUser() {
+  const byUser = new Map();
+  const row = (id) => {
+    const key = String(id);
+    if (!byUser.has(key)) byUser.set(key, {});
+    return byUser.get(key);
+  };
+  const base = { userId: { $type: 'objectId' }, archived: true };
+  const db = mongoose.connection;
+
+  const folders = await db.collection(COLLECTIONS.folders).aggregate([
+    { $match: base },
+    {
+      $group: {
+        _id: '$userId',
+        total: { $sum: 1 },
+        linked: {
+          $sum: {
+            $cond: [{ $and: [{ $gt: ['$causaId', null] }, { $ne: ['$causaIsValid', false] }] }, 1, 0]
+          }
+        }
+      }
+    }
+  ], { allowDiskUse: true }).toArray();
+  for (const r of folders) Object.assign(row(r._id), { folders: r.total, foldersLinked: r.linked });
+
+  const contacts = await db.collection(COLLECTIONS.contacts).aggregate([
+    { $match: base }, { $group: { _id: '$userId', total: { $sum: 1 } } }
+  ], { allowDiskUse: true }).toArray();
+  for (const r of contacts) row(r._id).contacts = r.total;
+
+  const calculators = await db.collection(COLLECTIONS.calculators).aggregate([
+    { $match: { ...base, type: 'Calculado' } }, { $group: { _id: '$userId', total: { $sum: 1 } } }
+  ], { allowDiskUse: true }).toArray();
+  for (const r of calculators) row(r._id).calculators = r.total;
+
+  return byUser;
+}
+
 /**
  * Actualiza las estadísticas para todos los usuarios.
  *
@@ -295,6 +350,19 @@ async function updateAllUserStats() {
       }
     }
 
+    // Almacenamiento: si falla no se escribe (poner 0 por un error transitorio sería peor)
+    let archived = null;
+    let sizes = STORAGE_SIZES_FALLBACK;
+    try {
+      archived = await archivedByUser();
+      const config = await mongoose.connection.collection('storageconfig').findOne({ isActive: true });
+      if (config?.documentSizes) sizes = { ...STORAGE_SIZES_FALLBACK, ...config.documentSizes };
+    } catch (error) {
+      logger.error(`Error al contar archivados para almacenamiento: ${error.message}`);
+      archived = null;
+      errorCount++;
+    }
+
     // 2) Un update por usuario, en bulkWrite por chunks. Por clave con dot-notation:
     //    reemplazar `counts` entero borraba postalDocuments/postalTrackings/alerts,
     //    que law-analytics-server mantiene transaccionalmente.
@@ -314,6 +382,13 @@ async function updateAllUserStats() {
           } else {
             setQuery[`counts.${name}`] = row ? row.total : 0;
           }
+        }
+        if (archived) {
+          const bytes = storageBytes(archived.get(key) || {}, sizes);
+          setQuery['storage.folders'] = bytes.folders;
+          setQuery['storage.contacts'] = bytes.contacts;
+          setQuery['storage.calculators'] = bytes.calculators;
+          setQuery['storage.total'] = bytes.total;
         }
         return { updateOne: { filter: { userId: user._id }, update: { $set: setQuery }, upsert: true } };
       });
@@ -378,6 +453,7 @@ module.exports = {
   repairNegativeCounters,
   updateUserStats,
   updateAllUserStats,
+  storageBytes,
   syncAllStats,
   getStatus
 };
