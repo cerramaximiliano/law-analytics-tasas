@@ -38,6 +38,7 @@ const mongoose = require('mongoose');
 const logger = require('../../../utils/logger');
 
 const INFOLEG = 'https://servicios.infoleg.gob.ar/infolegInternet';
+const { clasificarDecretoBono } = require('./bonosAlcance');
 const LISTAS_VINCULOS = { dnu274: 397577, ley24241: 639 };
 // Consejo del Salario: 3333 (desde 2014 aprox.) y 18 (nombre viejo, usado aún en 2022)
 const DEPENDENCIAS_CONSEJO_SMVM = [3333, 18];
@@ -311,6 +312,8 @@ function parsearDecretoBono(html) {
 	r.escalonado = /\ba[.)]\s*(?:PESOS|\(\s*\$)/i.test(art3) && /\bb[.)]\s*(?:PESOS|\(\s*\$)/i.test(art3);
 	const resto = arts.filter((a) => a.numero > 1).map((a) => a.texto).join(' ');
 	for (const pago of r.pagos) pago.escalones = escalonesBono(resto, pago);
+	// A quién alcanza según el texto (base de comparación, universo, exclusiones): bonosAlcance.js
+	r.clasificacion = clasificarDecretoBono(texto);
 
 	if (!r.norma) r.errores.push('no se encontró el número de decreto');
 	if (!r.pagos.length) r.errores.push(`no se pudieron emparejar montos (${montos.length}) y meses (${meses.length})`);
@@ -441,7 +444,7 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 	const pagosPorMes = {};
 	for (const b of bonos) {
 		if (b.previsional === false) continue;
-		for (const p of b.pagos) (pagosPorMes[p.mes] = pagosPorMes[p.mes] || []).push({ ...p, norma: b.norma, url: b.url, tipo: b.tipo, escalonado: b.escalonado });
+		for (const p of b.pagos) (pagosPorMes[p.mes] = pagosPorMes[p.mes] || []).push({ ...p, norma: b.norma, url: b.url, tipo: b.tipo, escalonado: b.escalonado, clasificacion: b.clasificacion });
 	}
 	const tramos = [...smvm].sort((a, b) => (a.mes < b.mes ? -1 : 1));
 	const primerBono = Object.keys(pagosPorMes).sort()[0];
@@ -509,9 +512,9 @@ function construirPropuesta({ resoluciones, bonos, smvm, existentes = {}, desde,
 				// El Dec. 268/24 (abril 2024) cita el mínimo de marzo: se toma el del mes, como lo liquidan los peritos
 				if (i === 0 && e.hasta && anterior && Math.abs(e.hasta - anterior.haberMinimoJubilacion) < 0.01 && minimoMes > e.hasta) {
 					avisosMes.push(`${x.norma}: el umbral ${e.hasta} es el haber mínimo del mes anterior; se toma el mínimo vigente`);
-					return { hasta: null, monto: e.monto, norma: x.norma };
+					return { hasta: null, monto: e.monto, norma: x.norma, ...extraEscalon(x) };
 				}
-				return { hasta: e.hasta, monto: e.monto, norma: x.norma };
+				return { hasta: e.hasta, monto: e.monto, norma: x.norma, ...extraEscalon(x) };
 			}));
 		} else if (primerBono && p >= primerBono) {
 			prop.bono = 0;
@@ -542,7 +545,20 @@ function vacio(v) {
 	return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
 }
 
+/** Alcance, base, universo, exclusiones y URL del decreto, para cada escalón (solo lo que el texto permitió leer). */
+function extraEscalon(pago) {
+	const c = pago.clasificacion || {};
+	const out = {};
+	for (const k of ['alcance', 'base', 'universo', 'excluye']) if (c[k] !== undefined) out[k] = c[k];
+	if (pago.url) out.url = pago.url;
+	return out;
+}
+
+/** De un escalón, lo que define el importe: el resto (alcance, base, universo, url) es anotación y no hace conflicto. */
+const nucleoEscalones = (v) => (Array.isArray(v) ? v.map((e) => ({ hasta: e.hasta === undefined ? null : e.hasta, monto: e.monto, norma: e.norma })) : v);
+
 function iguales(campo, a, b) {
+	if (campo === 'bonoEscalones') return JSON.stringify(nucleoEscalones(a)) === JSON.stringify(nucleoEscalones(b));
 	const tol = CAMPOS[campo];
 	if (typeof tol === 'number') return Math.abs(Number(a) - Number(b)) <= tol;
 	return JSON.stringify(a) === JSON.stringify(b);
