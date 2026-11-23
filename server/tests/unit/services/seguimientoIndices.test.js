@@ -2,7 +2,8 @@ const assert = require('assert');
 const { periodoEsperado, mensualAlDia, proximaPublicacion, fechaEsperada } = require('../../../utils/calendarioPublicacion');
 const { CATALOGO_TASAS, serieAlDia } = require('../../../utils/tasasIndices');
 const { detectarNovedades } = require('../../../services/scrapers/tasas/indicesMensualesService');
-const { armarAviso } = require('../../../services/scrapers/tasas/avisoIndices');
+const { armarEstadoIndices, htmlEstadoIndices, textoEstadoIndices } = require('../../../services/audit/estadoIndicesMensuales');
+const { asuntoReporte } = require('../../../utils/verificadorTasas');
 const { planMensual, planDiario, textoNovedad } = require('../../../services/seguimiento/seguimientoIndices');
 
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -78,13 +79,26 @@ describe('novedades de una serie mensual', () => {
 		assert.strictEqual(n[0].variacion, undefined);
 	});
 
-	it('el correo sale solo si hay novedades y las nombra en el asunto', () => {
-		const novedades = detectarNovedades(leidos, previos, 'nivel');
-		assert.strictEqual(armarAviso([{ serie: 'ipc', descripcion: 'IPC', novedades: [] }]), null);
-		const a = armarAviso([{ serie: 'ripte', descripcion: 'RIPTE', novedades, proximo: proximaPublicacion(RIPTE, '2026-09') }, { serie: 'ipc', descripcion: 'IPC', novedades: [] }]);
-		assert.ok(a.asunto.includes('RIPTE 2026-09') && a.asunto.includes('+2,00 %'));
-		assert.ok(a.texto.includes('2026-08 corregido') && a.texto.includes('Próximo: 2026-10, esperado el 20/12/2026'));
-		assert.ok(!a.asunto.includes('IPC'));
+	it('el reporte diario lleva los índices: novedad del día en el asunto, atraso como alerta', () => {
+		const ahora = new Date('2026-11-23T21:00:00Z');
+		const e = armarEstadoIndices([
+			{ serie: 'ripte', descripcion: 'RIPTE', regla: RIPTE, tipo: 'nivel', ultimos: leidos.slice(1), novedades: [{ periodo: '2026-08', novedadTipo: 'revisado', valor: 1982518.19, valorAnterior: 1915878.76 }, { periodo: '2026-09', novedadTipo: 'nuevo', valor: 2022244.09 }] },
+			{ serie: 'ipc', descripcion: 'IPC', regla: IPC, tipo: 'nivel', ultimos: [{ periodo: '2026-09', valor: 12514.1508 }, { periodo: '2026-10', valor: 12785.9321 }], novedades: [] },
+		], ahora);
+		assert.strictEqual(e.nivel, 'ok');
+		assert.strictEqual(e.titular, 'RIPTE 2026-09: 2.022.244,09');
+		assert.strictEqual(e.filas[0].variacion.toFixed(2), '2.00');
+		assert.strictEqual(e.filas[1].proximo.periodo, '2026-11');
+		const asunto = asuntoReporte({ previsional: { nivel: 'ok', titular: 'previsional al día' }, indices: e, fechaActual: ahora });
+		assert.ok(asunto.startsWith('[OK]') && asunto.includes('RIPTE 2026-09'));
+		assert.ok(htmlEstadoIndices(e).includes('2026-08 corregido') && textoEstadoIndices(e).includes('próximo 2026-11 el 18/12/2026'));
+		// sin novedades el asunto no cambia
+		const quieto = armarEstadoIndices([{ serie: 'ipc', descripcion: 'IPC', regla: IPC, tipo: 'nivel', ultimos: [{ periodo: '2026-10', valor: 1 }], novedades: [] }], ahora);
+		assert.ok(!asuntoReporte({ previsional: { nivel: 'ok', titular: 'x' }, indices: quieto, fechaActual: ahora }).includes('IPC'));
+		// atrasado
+		const mal = armarEstadoIndices([{ serie: 'ripte', descripcion: 'RIPTE', regla: RIPTE, tipo: 'nivel', ultimos: leidos.slice(0, 2), novedades: [] }], ahora);
+		assert.strictEqual(mal.nivel, 'alerta');
+		assert.ok(textoEstadoIndices(mal).includes('ATRASADO, falta 2026-09'));
 	});
 });
 

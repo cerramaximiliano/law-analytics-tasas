@@ -315,10 +315,10 @@ No está acá: los aumentos generales de ANSES y los factores de los criterios d
 
 Con el margen fijo anterior (75 o 110 días desde el fin del último mes) un atraso real tardaba semanas en verse: el 23/11/2026 el RIPTE estaba en agosto y figuraba "al día". Lo usan el reporte diario de tasas (`verificadorTasas`) y `GET /api/tasas/status` (`serieAlDia`).
 
-**Correo.** Dos avisos distintos:
+**Correo.** No hay un correo aparte: los índices mensuales van en el **reporte diario de tasas y datos previsionales** que ya se envía (9:00 y 23:00, y como alerta tras cada ciclo si algo está desactualizado), en la sección "Índices mensuales" (`server/services/audit/estadoIndicesMensuales.js`): último mes, valor y variación, si está al día, cuándo se espera el próximo dato y qué llegó o se corrigió en las últimas 24 horas.
 
-- *Llegó un dato* — `avisoIndices.js`, desde el cron `indices-mensuales`: sale solo cuando una serie con calendario trae un mes nuevo o la fuente corrigió un mes ya cargado. Dice el valor, la variación mensual, la fuente y cuándo se espera el próximo. Destinatario: `EMAIL_ADMIN_INDICES` (por defecto el mismo de los avisos arancelarios). `INDICES_DRY_EMAIL=1` lo loguea sin enviarlo.
-- *Falta un dato* — el reporte diario de tasas ya existente: una serie mensual que no llegó al período esperado figura como desactualizada, con "último mes X, esperado Y".
+- *Llegó un dato o la fuente corrigió uno*: el documento queda marcado (`novedadEn`, `novedadTipo`, `valorAnterior`) y el reporte lo muestra durante 24 horas, también en el asunto ("RIPTE 2026-09: 2.022.244,09").
+- *Falta un dato*: la serie que no llegó al período esperado cuenta como tasa desactualizada, con lo que el reporte sale como `[ALERTA]`.
 
 **Tareas del admin** (`server/services/seguimiento/seguimientoIndices.js`, colección `admintasks`, vista `/admin/tasks`, proyecto `tasas`). Una tarea por serie, que se reutiliza (se ubica por `metadata.seguimientoIndice`):
 

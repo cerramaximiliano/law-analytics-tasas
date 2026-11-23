@@ -22,6 +22,11 @@ const indicesMensualesSchema = new mongoose.Schema(
     // meses intermedios repiten el valor vigente y guardan acá el período de origen.
     rellenoDesde: { type: String },
     publicadoEn: { type: Date },
+    // Última vez que este mes llegó como dato nuevo o que la fuente lo corrigió (lo muestra el
+    // reporte diario de tasas durante 24 horas).
+    novedadEn: { type: Date },
+    novedadTipo: { type: String, enum: ['nuevo', 'revisado'] },
+    valorAnterior: { type: Number },
   },
   { timestamps: true, collection: 'indicesmensuales' }
 );

@@ -17,7 +17,6 @@ const moment = require('moment');
 const IndicesMensuales = require('../../../models/indicesMensuales');
 const logger = require('../../../utils/logger');
 const { CATALOGO_TASAS } = require('../../../utils/tasasIndices');
-const { proximaPublicacion } = require('../../../utils/calendarioPublicacion');
 
 const SERIES_MENSUALES = {
 	inflacionMensual: {
@@ -214,6 +213,8 @@ async function actualizarSerieMensual(serie, opciones = {}) {
 
 		const previos = new Map((await IndicesMensuales.find({ serie, periodo: { $gte: validos[0].periodo } }).select('periodo valor').lean()).map((d) => [d.periodo, d.valor]));
 		const novedades = detectarNovedades(validos, previos, cfg.tipo, cfg.fuente);
+		const porNovedad = new Map(novedades.map((n) => [n.periodo, n]));
+		const ahora = new Date();
 		const provisorios = new Set(cfg.provisoriosUltimos ? validos.slice(-cfg.provisoriosUltimos).map((d) => d.periodo) : []);
 		if (!opciones.dryRun) {
 			await IndicesMensuales.bulkWrite(
@@ -221,7 +222,7 @@ async function actualizarSerieMensual(serie, opciones = {}) {
 					updateOne: {
 						filter: { serie, periodo: d.periodo },
 						update: {
-							$set: { valor: d.valor, tipo: cfg.tipo, fuente: d.fuente || cfg.fuente, provisorio: provisorios.has(d.periodo), publicadoEn: new Date(), ...(d.rellenoDesde ? { rellenoDesde: d.rellenoDesde } : {}) },
+							$set: { valor: d.valor, tipo: cfg.tipo, fuente: d.fuente || cfg.fuente, provisorio: provisorios.has(d.periodo), publicadoEn: ahora, ...(d.rellenoDesde ? { rellenoDesde: d.rellenoDesde } : {}), ...(porNovedad.has(d.periodo) ? { novedadEn: ahora, novedadTipo: porNovedad.get(d.periodo).tipo, ...(porNovedad.get(d.periodo).tipo === 'revisado' ? { valorAnterior: porNovedad.get(d.periodo).anterior } : {}) } : {}) },
 							...(d.rellenoDesde ? {} : { $unset: { rellenoDesde: '' } }),
 						},
 						upsert: true,
@@ -249,12 +250,12 @@ async function sincronizarConfig(serie) {
 
 /**
  * Actualiza todas las series. Para las que tienen calendario de publicación en el catálogo
- * (IPC, RIPTE, inflación): avisa por correo los meses nuevos o corregidos y renueva la tarea de
- * seguimiento del admin, también cuando la fuente falló (así la tarea queda vencida a la vista).
+ * (IPC, RIPTE, inflación) renueva la tarea de seguimiento del admin, también cuando la fuente
+ * falló (así la tarea queda vencida a la vista). Los meses nuevos o corregidos quedan marcados en
+ * el documento (`novedadEn`) y los informa el reporte diario de tasas, sin correo aparte.
  */
 async function actualizarTodas(opciones = {}) {
 	const resultados = {};
-	const seguidas = [];
 	for (const serie of Object.keys(SERIES_MENSUALES)) {
 		const r = await actualizarSerieMensual(serie, opciones);
 		resultados[serie] = r;
@@ -264,7 +265,6 @@ async function actualizarTodas(opciones = {}) {
 			const ultimo = await IndicesMensuales.findOne({ serie }).sort({ periodo: -1 }).select('periodo').lean();
 			if (!ultimo) continue;
 			const novedades = (r.data && r.data.novedades) || [];
-			seguidas.push({ serie, descripcion: cat.descripcion, novedades, proximo: proximaPublicacion(cat.publicacion, ultimo.periodo) });
 			if (!opciones.sinSeguimiento) {
 				const { seguirSerieMensual } = require('../../seguimiento/seguimientoIndices');
 				await seguirSerieMensual({ serie, descripcion: cat.descripcion, fuente: cat.fuente, regla: cat.publicacion, ultimoPeriodo: ultimo.periodo, novedades, aiSession: opciones.aiSession });
@@ -272,10 +272,6 @@ async function actualizarTodas(opciones = {}) {
 		} catch (e) {
 			logger.error(`${serie}: no se pudo registrar el seguimiento: ${e.message}`);
 		}
-	}
-	if (!opciones.dryRun && !opciones.sinAviso) {
-		const { notificarNovedades } = require('./avisoIndices');
-		await notificarNovedades(seguidas);
 	}
 	return resultados;
 }

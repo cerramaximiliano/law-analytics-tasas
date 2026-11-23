@@ -5,18 +5,21 @@ const TasasConfig = require('../models/tasasConfig');
 const { CATALOGO_TASAS } = require('./tasasIndices');
 const { mensualAlDia, periodoEsperado } = require('./calendarioPublicacion');
 const { obtenerEstadoDatosPrevisionales, htmlEstado, textoEstado } = require('../services/audit/estadoDatosPrevisionales');
+const { obtenerEstadoIndicesMensuales, htmlEstadoIndices, textoEstadoIndices } = require('../services/audit/estadoIndicesMensuales');
 
 /**
  * Asunto del reporte: cubre tasas y datos previsionales. [ALERTA] si hay tasas desactualizadas, errores de scraping o
  * un problema en los datos previsionales (mes en curso sin datos, cron parado, normas que no se leen); [AVISO] si
  * solo falta algo menor del mes en curso (salario mínimo, decreto del bono); [OK] si todo está al día.
  */
-function asuntoReporte({ desactualizadas = 0, conErrores = 0, previsional, fechaActual }) {
+function asuntoReporte({ desactualizadas = 0, conErrores = 0, previsional, indices, fechaActual }) {
     const nivelPrev = previsional ? previsional.nivel : 'error';
     const prefijo = desactualizadas || conErrores || nivelPrev === 'alerta' || nivelPrev === 'error' ? '[ALERTA]' : nivelPrev === 'aviso' ? '[AVISO]' : '[OK]';
     const partes = [desactualizadas ? `${desactualizadas} tasas desactualizadas` : 'tasas al día'];
     if (conErrores) partes.push(`${conErrores} con errores de scraping`);
     partes.push(previsional && previsional.titular ? previsional.titular : 'estado previsional no disponible');
+    // Índices mensuales: solo si llegó o se corrigió un mes en las últimas 24 h (el atraso ya cuenta como tasa desactualizada)
+    if (indices && indices.novedades && indices.titular) partes.push(indices.titular);
     return `${prefijo} Tasas y datos previsionales ${moment(fechaActual).format('YYYY-MM-DD')} · ${partes.join(' · ')}`;
 }
 /**
@@ -151,6 +154,14 @@ async function verificarTasasActualizadas(options = {}) {
             previsional = { nivel: 'error', mensaje: e.message, titular: 'estado previsional no disponible' };
         }
 
+        // Índices mensuales (IPC, RIPTE, inflación): último mes, próximo dato y novedades del día
+        let indices = null;
+        try {
+            indices = await obtenerEstadoIndicesMensuales();
+        } catch (e) {
+            logger.error(`Error al leer el estado de los índices mensuales: ${e.message}`);
+        }
+
         // Tarea de seguimiento de las tasas diarias en el admin: se renueva si están todas al día
         await require('../services/seguimiento/seguimientoIndices').seguirTasasDiarias({ resultado });
 
@@ -166,10 +177,10 @@ async function verificarTasasActualizadas(options = {}) {
             if (debeEnviarEmail) {
                 if (todasActualizadas && !hayErroresScraping) {
                     // Todo está bien - enviar email de éxito
-                    await enviarEmailExito(emailDestinatario, resultado, fechaActual, previsional);
+                    await enviarEmailExito(emailDestinatario, resultado, fechaActual, previsional, indices);
                 } else if (!todasActualizadas || hayErroresScraping) {
                     // Hay tasas desactualizadas o errores de scraping - enviar alerta
-                    await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, tasasConErrores, previsional);
+                    await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, tasasConErrores, previsional, indices);
                 }
             }
         }
@@ -189,6 +200,7 @@ async function verificarTasasActualizadas(options = {}) {
             tasasConErrores: tasasConErrores.length,
             hayErroresScraping: tasasConErrores.length > 0,
             previsional,
+            indices,
             resultado
         };
     } catch (error) {
@@ -207,7 +219,7 @@ async function verificarTasasActualizadas(options = {}) {
  * @param {Date} fechaActual - Fecha actual de la verificación
  * @param {Array} tasasConErrores - Lista de tasas con errores de scraping
  */
-async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTasas, fechaActual, tasasConErrores = [], previsional = null) {
+async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTasas, fechaActual, tasasConErrores = [], previsional = null, indices = null) {
     try {
         // Crear tabla HTML con las tasas desactualizadas
         let tablaTasasDesactualizadas = `
@@ -357,7 +369,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
             'Alerta de Tasas Desactualizadas' : 
             'Alerta de Errores de Scraping';
             
-        const asunto = asuntoReporte({ desactualizadas: tasasDesactualizadas.length, conErrores: tasasConErrores.length, previsional, fechaActual });
+        const asunto = asuntoReporte({ desactualizadas: tasasDesactualizadas.length, conErrores: tasasConErrores.length, previsional, indices, fechaActual });
             
         const htmlBody = `
         <html>
@@ -389,6 +401,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
           
           ${tablaErroresScraping}
           
+          ${htmlEstadoIndices(indices)}
           ${htmlEstado(previsional)}
           
           <div class="note">
@@ -437,6 +450,8 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
         }
         
         textBody += `
+        ${textoEstadoIndices(indices)}
+
         ${textoEstado(previsional)}
         
         Nota: Solo se consideran actualizadas las tasas con fecha de hoy o fechas futuras.
@@ -468,7 +483,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
  * @param {Array} tasas - Lista completa de tasas
  * @param {Date} fechaActual - Fecha actual de la verificación
  */
-async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = null) {
+async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = null, indices = null) {
     try {
         // Crear resumen de todas las tasas
         let tablaTasas = `
@@ -549,7 +564,7 @@ async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = 
         tablaFechasFaltantes += '</table>';
 
         // Contenido del email
-        const asunto = asuntoReporte({ previsional, fechaActual });
+        const asunto = asuntoReporte({ previsional, indices, fechaActual });
         const htmlBody = `
         <html>
         <head>
@@ -580,6 +595,7 @@ async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = 
           </div>
           ` : ''}
           
+          ${htmlEstadoIndices(indices)}
           ${htmlEstado(previsional)}
           
           <div class="note">
@@ -598,6 +614,8 @@ async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = 
         Verificación completada: Todas las tasas están actualizadas a la fecha actual (${moment(fechaActual).format('YYYY-MM-DD')}).
         
         ${hayFechasFaltantes ? 'ADVERTENCIA: A pesar de que todas las tasas están actualizadas para la fecha actual, existen fechas faltantes en el historial.\n' : ''}
+        ${textoEstadoIndices(indices)}
+
         ${textoEstado(previsional)}
         
         Este es un mensaje automático del sistema de verificación de tasas y datos previsionales.
