@@ -84,6 +84,10 @@ let datosPrevSchema = new Schema({
     referenciaDiferencialMax: { type: Number },
     movilidadLey27426: { type: Number },
     movilidadIpcTrimRetrasado3m: { type: Number },
+    // Derivados de IPC y RIPTE para el empalme de 2024 (scripts/cargarMovilidadDerivada2024.js):
+    // empalme 70/30 de 12/2023 a 4/2024 (solo 2024-07) e IPC trimestral del criterio Aguirre (2024-03 y 2024-06)
+    movilidadEmpalme27426Dnu: { type: Number },
+    movilidadAguirreIpcTrimestral: { type: Number },
     movilidadAumentoMar2021: { type: Number },
     norma: { type: String },
     links: { type: [String] },
@@ -92,9 +96,21 @@ let datosPrevSchema = new Schema({
     puam: { type: Number },
     bono: { type: Number },          // monto máximo del bono/ayuda/refuerzo pagado en el mes; 0 si no hubo
     bonoNorma: { type: String },
-    // Escalones del decreto: quien cobra hasta `hasta` (null = haber mínimo del mes) recibe `monto`; por encima,
-    // lo necesario para llegar a hasta + monto. Varios decretos en el mes se suman.
-    bonoEscalones: [{ _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String }],
+    // Escalones del decreto. `alcance` dice cómo se paga (services/scrapers/previsional/bonosAlcance.js):
+    // umbral_decreciente (default: `monto` hasta `hasta`; por encima, lo necesario para llegar a hasta + monto),
+    // umbral / escalonado (`monto` entero hasta `hasta`), solo_minimo, todos. `hasta: null` = haber mínimo del mes
+    // (haber máximo si el alcance es "todos"). Varios decretos en el mes se suman.
+    // `base` (único beneficio / suma de prestaciones / cada prestación), `universo` (sipa / movilidad_art32) y
+    // `excluye` dicen a quién alcanza según el texto; el motor del hub todavía no los usa.
+    bonoEscalones: [{
+      _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String,
+      alcance: { type: String, enum: ['umbral_decreciente', 'umbral', 'escalonado', 'solo_minimo', 'todos'] },
+      base: { type: String, enum: ['unico_beneficio', 'suma_prestaciones', 'cada_prestacion'] },
+      universo: { type: String, enum: ['sipa', 'movilidad_art32'] },
+      excluye: { type: [String], default: undefined },
+      normaModificatoria: { type: String },
+      url: { type: String },
+    }],
     normaSMVM: { type: String },
     fuentes: { type: Schema.Types.Mixed }, // { anses: [url], bono: [url], smvm: [url] }
     // ── Haber de caja (Ley 24.241): mismo esquema que law-analytics-server/models/DatosPrevisionales.js ──
