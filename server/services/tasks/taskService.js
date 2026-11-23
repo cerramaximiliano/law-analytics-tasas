@@ -449,6 +449,13 @@ function initializeTasks() {
   );
 
   scheduleTask(
+    'indices-mensuales-relectura',
+    cronConfig.indicesMensuales.relecturaCompleta,
+    () => actualizarIndicesMensuales({ completa: true }),
+    'Relectura completa semanal de las series mensuales (recoge revisiones de la fuente sobre meses viejos)'
+  );
+
+  scheduleTask(
     'conciliacion-cpacf',
     cronConfig.conciliacionCPACF.diaria,
     () => conciliarUltimosDias(20),

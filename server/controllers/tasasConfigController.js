@@ -2,7 +2,7 @@ const Tasas = require("../models/tasas");
 const TasasConfig = require("../models/tasasConfig");
 const moment = require('moment');
 const logger = require('../utils/logger');
-const { getTipoIndice, getConfigCatalogo, CATALOGO_TASAS } = require('../utils/tasasIndices');
+const { getTipoIndice, getConfigCatalogo, CATALOGO_TASAS, serieAlDia } = require('../utils/tasasIndices');
 const { computarPeriodosMensuales } = require('../utils/periodosMensuales');
 
 
@@ -18,11 +18,11 @@ const { computarPeriodosMensuales } = require('../utils/periodosMensuales');
 exports.getTasasStatus = async (req, res) => {
     try {
         const hoy = moment.utc().startOf('day').toDate();
-        const configs = await TasasConfig.find({ discontinuada: { $ne: true } }).select('tipoTasa fechaUltima atrasoPublicacionDias');
+        const configs = await TasasConfig.find({ discontinuada: { $ne: true } }).select('tipoTasa fechaUltima atrasoPublicacionDias ultimoPeriodo');
 
         // Una serie está al día si su último dato llega a hoy menos el atraso normal de su fuente
-        const alDia = c => c.fechaUltima &&
-            moment.utc(c.fechaUltima).startOf('day').isSameOrAfter(moment.utc(hoy).subtract(c.atrasoPublicacionDias || 0, 'days'));
+        // (las mensuales con calendario de publicación: si llegan al período que ya debería estar)
+        const alDia = c => serieAlDia(c);
         const total = configs.length;
         const actualizadas = configs.filter(alDia).length;
         const desactualizadas = configs

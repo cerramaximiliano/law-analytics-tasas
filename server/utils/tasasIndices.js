@@ -38,6 +38,11 @@ const TIPO_INDICE_POR_TASA = {
  *                    de días sin publicación (BADLAR, TAMAR, TM20).
  *   - 'mensual':     un dato por mes en la colección IndicesMensuales (inflación, RIPTE, IPC).
  * Las series que no están en el catálogo se tratan como 'diaria' en la colección 'tasas'.
+ *
+ * Las mensuales llevan además `publicacion: { mesesDespues, dia }` (utils/calendarioPublicacion):
+ * el dato del mes M debe estar el día `dia` del mes M + `mesesDespues`. Con esa regla se decide
+ * si la serie está al día (en vez del margen fijo `atrasoPublicacionDias`, que queda como
+ * respaldo) y cuándo vence su tarea de seguimiento.
  */
 const CATALOGO_TASAS = {
   uva: {
@@ -75,18 +80,26 @@ const CATALOGO_TASAS = {
     descripcion: 'Inflación mensual (IPC INDEC)', fuente: 'BCRA API v4, variable 27 (IPC INDEC)',
     unidadOrigen: 'Variación % mensual', unidadAlmacenada: 'Variación % del mes',
     atrasoPublicacionDias: 75,
+    // El INDEC publica a mediados del mes siguiente y el BCRA lo toma unos días después.
+    publicacion: { mesesDespues: 1, dia: 22 },
   },
   ripte: {
     tipoIndice: 'indiceMensual', periodicidad: 'mensual', coleccion: 'indicesmensuales',
-    descripcion: 'RIPTE', fuente: 'datos.gob.ar, serie 158.1_REPTE_0_0_5',
+    descripcion: 'RIPTE', fuente: 'Secretaría de Trabajo (argentina.gob.ar/trabajo/seguridadsocial/ripte); histórico de datos.gob.ar, serie 158.1_REPTE_0_0_5',
     unidadOrigen: 'Pesos (remuneración promedio)', unidadAlmacenada: 'Nivel del mes',
-    atrasoPublicacionDias: 110,
+    // La Secretaría de Trabajo publica hasta 45 días después de cerrado el mes. Eran 110 cuando
+    // la única fuente era la republicación de datos.gob.ar, que llega más tarde.
+    atrasoPublicacionDias: 75,
+    // El RIPTE de un mes sale a mediados del segundo mes siguiente (septiembre, en noviembre).
+    publicacion: { mesesDespues: 2, dia: 20 },
   },
   ipc: {
     tipoIndice: 'indiceMensual', periodicidad: 'mensual', coleccion: 'indicesmensuales',
     descripcion: 'IPC INDEC (nivel general)', fuente: 'datos.gob.ar, serie 148.3_INIVELNAL_DICI_M_26',
     unidadOrigen: 'Índice base dic-2016 = 100', unidadAlmacenada: 'Nivel del mes',
     atrasoPublicacionDias: 75,
+    // El INDEC publica el IPC entre el 10 y el 16 del mes siguiente; datos.gob.ar lo toma en el día.
+    publicacion: { mesesDespues: 1, dia: 18 },
   },
 };
 
@@ -99,4 +112,15 @@ function getConfigCatalogo(tipoTasa) {
   return CATALOGO_TASAS[tipoTasa] ? { ...CATALOGO_TASAS[tipoTasa] } : {};
 }
 
-module.exports = { TIPO_INDICE_POR_TASA, CATALOGO_TASAS, getTipoIndice, getConfigCatalogo };
+/** ¿La serie está al día? Mensuales con calendario: por período esperado. El resto: por días. */
+function serieAlDia({ tipoTasa, ultimoPeriodo, fechaUltima, atrasoPublicacionDias }, hoy = new Date()) {
+  const moment = require('moment');
+  const cat = CATALOGO_TASAS[tipoTasa];
+  if (cat && cat.publicacion && ultimoPeriodo) {
+    return require('./calendarioPublicacion').mensualAlDia(cat.publicacion, ultimoPeriodo, hoy);
+  }
+  if (!fechaUltima) return false;
+  return moment.utc(fechaUltima).startOf('day').isSameOrAfter(moment.utc(moment(hoy).format('YYYY-MM-DD')).subtract(atrasoPublicacionDias || 0, 'days'));
+}
+
+module.exports = { serieAlDia, TIPO_INDICE_POR_TASA, CATALOGO_TASAS, getTipoIndice, getConfigCatalogo };
