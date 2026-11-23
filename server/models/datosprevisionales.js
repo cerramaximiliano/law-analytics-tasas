@@ -92,9 +92,21 @@ let datosPrevSchema = new Schema({
     puam: { type: Number },
     bono: { type: Number },          // monto máximo del bono/ayuda/refuerzo pagado en el mes; 0 si no hubo
     bonoNorma: { type: String },
-    // Escalones del decreto: quien cobra hasta `hasta` (null = haber mínimo del mes) recibe `monto`; por encima,
-    // lo necesario para llegar a hasta + monto. Varios decretos en el mes se suman.
-    bonoEscalones: [{ _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String }],
+    // Escalones del decreto. `alcance` dice cómo se paga (services/scrapers/previsional/bonosAlcance.js):
+    // umbral_decreciente (default: `monto` hasta `hasta`; por encima, lo necesario para llegar a hasta + monto),
+    // umbral / escalonado (`monto` entero hasta `hasta`), solo_minimo, todos. `hasta: null` = haber mínimo del mes
+    // (haber máximo si el alcance es "todos"). Varios decretos en el mes se suman.
+    // `base` (único beneficio / suma de prestaciones / cada prestación), `universo` (sipa / movilidad_art32) y
+    // `excluye` dicen a quién alcanza según el texto; el motor del hub todavía no los usa.
+    bonoEscalones: [{
+      _id: false, hasta: { type: Number, default: null }, monto: Number, norma: String,
+      alcance: { type: String, enum: ['umbral_decreciente', 'umbral', 'escalonado', 'solo_minimo', 'todos'] },
+      base: { type: String, enum: ['unico_beneficio', 'suma_prestaciones', 'cada_prestacion'] },
+      universo: { type: String, enum: ['sipa', 'movilidad_art32'] },
+      excluye: { type: [String], default: undefined },
+      normaModificatoria: { type: String },
+      url: { type: String },
+    }],
     normaSMVM: { type: String },
     fuentes: { type: Schema.Types.Mixed }, // { anses: [url], bono: [url], smvm: [url] }
     // ── Haber de caja (Ley 24.241): mismo esquema que law-analytics-server/models/DatosPrevisionales.js ──

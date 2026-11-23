@@ -60,6 +60,19 @@ Campos que escribe la sincronización (`CAMPOS` en el servicio):
     haberes mínimos con el mes anterior.
   - `topePC` = `topePC` del mes anterior × `movilidadGeneral`, a centavos.
 - Del bono: `bono`, `bonoNorma`, `bonoEscalones`.
+  Cada escalón (`hasta`, `monto`, `norma`) lleva además **a quién alcanza** según el texto del decreto
+  (`server/services/scrapers/previsional/bonosAlcance.js`):
+
+  | campo | valores | qué dice |
+  |---|---|---|
+  | `alcance` | `umbral_decreciente` · `umbral` · `escalonado` · `solo_minimo` · `todos` | cómo se paga según el haber. Lo usa el motor del hub (`bonoDelMes`); sin el campo vale `umbral_decreciente` |
+  | `base` | `unico_beneficio` · `suma_prestaciones` · `cada_prestacion` | contra qué se mide el umbral cuando el titular tiene más de una prestación |
+  | `universo` | `sipa` · `movilidad_art32` | desde el Dec. 532/2022 solo cobran las prestaciones con movilidad del art. 32 de la ley 24.241 |
+  | `excluye`, `normaModificatoria`, `url` | | exclusiones expresas, norma que modificó el umbral (4/2024: Dec. 282/2024) y enlace a InfoLeg |
+
+  `base`, `universo` y `excluye` son informativos: el motor todavía compara con el haber de la prestación liquidada. El
+  sincronizador los lee del texto de cada decreto nuevo (`clasificarDecretoBono`) y **no hacen conflicto**: al comparar
+  con lo guardado solo cuentan `hasta`, `monto` y `norma`.
 - Del salario mínimo: `salarioMVM`, `normaSMVM` (si en un mes no hay resolución nueva, queda el último tramo vigente con
   la aclaración "(tramo de AAAA-MM, vigente)").
 - **`suplemento82SMVM = máx(0; 0,82 × SMVM − haber mínimo)`**: lo que hay que sumar al haber mínimo de ANSES para llegar
@@ -167,6 +180,32 @@ node scripts/sincronizarDatosPrevisionales.js --revertir=datosprev-20261012-1638
 
 Tests: `npx mocha server/tests/unit/services/*.test.js` (parseo de resoluciones de ANSES, decretos de bono y
 resoluciones del SMVM con HTML real de InfoLeg; propuesta y diff; aviso del cron; estado del reporte).
+
+### Bonos anteriores a 11/2019 y alcance de los ya cargados
+
+El sincronizador arranca en 11/2019. Los pagos únicos anteriores y la anotación de alcance de lo ya cargado van con un
+script aparte, en seco por defecto:
+
+```bash
+node scripts/cargarBonos2002a2016.js                    # en seco: qué escribiría
+node scripts/cargarBonos2002a2016.js --apply
+node scripts/cargarBonos2002a2016.js --revertir --apply  # lo deshace
+```
+
+| mes | norma | importe | alcance |
+|---|---|---|---|
+| 12/2004 | Dec. 1670/2004 | $ 200 | todos, hasta el haber máximo |
+| 12/2008 | Dec. 2300/2008 | $ 200 | todos, hasta el haber máximo |
+| 12/2009 | Dec. 1879/2009 | $ 350 a $ 200 | siete escalones fijos hasta $ 1.500 |
+| 12/2010 | Dec. 1856/2010 | $ 500 | haberes de hasta $ 1.500, sin decreciente |
+| 12/2015 | Dec. 253/2015 | $ 400 | solo haber mínimo |
+| 04/2016 | Dec. 591/2016 | $ 500 | solo haber mínimo |
+| 12/2016 | Dec. 1252/2016 | $ 1.000 | mínimo, decreciente hasta $ 6.661,16 (art. 2) |
+
+No se cargan como bono, porque integran el haber o son un piso, y ya están en otros campos: el suplemento por movilidad
+del Dec. 1199/2004 (`movilidadDiferencial` 1,1 y `referenciaDiferencialMax` 1.000 en 9/2004), el piso de cobro del
+Dec. 1275/2002 (`haberMinimoCobro` 200 de 8/2002 a 6/2003) y el subsidio de $ 40 del Dec. 1273/2005 (dentro del mínimo
+de $ 390). Sin verificar: Dec. 1058/2017 (3/2018), que la búsqueda por número de InfoLeg no devolvió.
 
 ## 7. Verificación y estado
 

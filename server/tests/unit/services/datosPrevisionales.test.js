@@ -123,7 +123,7 @@ describe('datosPrevisionales - parseo de decretos de bono', () => {
 			bonos: [{ ...r, url: 'u' }], smvm: [], desde: '2024-04', hasta: '2024-04',
 			existentes: { '2024-03': { haberMinimoJubilacion: 134445.3 } },
 		});
-		assert.deepStrictEqual(meses[0].propuesto.bonoEscalones, [{ hasta: null, monto: 70000, norma: 'Decreto 268/2024' }]);
+		assert.deepStrictEqual(meses[0].propuesto.bonoEscalones, [{ hasta: null, monto: 70000, norma: 'Decreto 268/2024', alcance: 'umbral_decreciente', base: 'suma_prestaciones', universo: 'movilidad_art32', url: 'u' }]);
 		assert.ok(meses[0].avisos.some((a) => /mes anterior/.test(a)));
 	});
 });
