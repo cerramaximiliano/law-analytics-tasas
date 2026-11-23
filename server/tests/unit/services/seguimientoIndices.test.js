@@ -68,6 +68,11 @@ describe('novedades de una serie mensual', () => {
 		assert.deepStrictEqual(detectarNovedades(leidos, new Map(), 'nivel'), []);
 	});
 
+	it('un mes viejo que se completa en una relectura no es novedad', () => {
+		const n = detectarNovedades([{ periodo: '1943-02', valor: -0.6 }, { periodo: '1943-03', valor: 0.4 }], new Map([['1943-03', 0.4]]), 'variacion');
+		assert.deepStrictEqual(n, []);
+	});
+
 	it('una serie de variación no calcula variación sobre la variación', () => {
 		const n = detectarNovedades([{ periodo: '2026-09', valor: 2.1 }, { periodo: '2026-10', valor: 2.3 }], new Map([['2026-09', 2.1]]), 'variacion');
 		assert.strictEqual(n[0].variacion, undefined);

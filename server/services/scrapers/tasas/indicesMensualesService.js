@@ -159,6 +159,7 @@ function superponerOficial(republicada, oficial, fuenteOficial) {
 /**
  * Compara lo leído con lo que ya estaba guardado: meses nuevos y meses que la fuente corrigió.
  * Función pura. Si no había nada guardado es la carga inicial y no hay novedades que avisar.
+ * `previos` debe cubrir desde el primer período leído.
  * @param {Array<{periodo, valor, fuente?, rellenoDesde?}>} leidos  en orden cronológico
  * @param {Map<string, number>} previos  período → valor guardado
  * @param {'nivel'|'variacion'|'valor'} tipo
@@ -166,10 +167,14 @@ function superponerOficial(republicada, oficial, fuenteOficial) {
 function detectarNovedades(leidos, previos, tipo, fuenteDefault) {
 	if (!previos || !previos.size) return [];
 	const out = [];
+	// "Nuevo" es un mes posterior al último guardado. Un mes viejo que se completa en una
+	// relectura (un hueco del histórico) se guarda sin avisar.
+	const ultimoGuardado = [...previos.keys()].sort().pop();
 	leidos.forEach((d, i) => {
 		if (d.rellenoDesde) return;
 		const fuente = d.fuente || fuenteDefault;
 		if (!previos.has(d.periodo)) {
+			if (d.periodo < ultimoGuardado) return;
 			const ant = i > 0 ? leidos[i - 1].valor : undefined;
 			const variacion = tipo === 'nivel' && ant > 0 ? (d.valor / ant - 1) * 100 : undefined;
 			out.push({ tipo: 'nuevo', periodo: d.periodo, valor: d.valor, variacion, fuente });
