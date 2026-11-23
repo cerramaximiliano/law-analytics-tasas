@@ -207,6 +207,29 @@ del Dec. 1199/2004 (`movilidadDiferencial` 1,1 y `referenciaDiferencialMax` 1.00
 Dec. 1275/2002 (`haberMinimoCobro` 200 de 8/2002 a 6/2003) y el subsidio de $ 40 del Dec. 1273/2005 (dentro del mínimo
 de $ 390). Sin verificar: Dec. 1058/2017 (3/2018), que la búsqueda por número de InfoLeg no devolvió.
 
+### Coeficientes derivados para el empalme de 2024 (IPC y RIPTE)
+
+Dos criterios del retroactivo del hub necesitan coeficientes que no publica ninguna norma: se calculan con las series
+oficiales de `indicesmensuales` (`ipc`, `ripte`) y se guardan en el mes en que rigen.
+
+| campo | mes | fórmula | valor | criterio del hub |
+|---|---|---|---|---|
+| `movilidadAguirreIpcTrimestral` | 2024-03 | IPC 12/2023 ÷ IPC 9/2023 | 1,53288867 | `aguirre_ipc_trimestral` (CFSS Sala III, "Aguirre", 5/11/2026) |
+| `movilidadAguirreIpcTrimestral` | 2024-06 | IPC 3/2024 ÷ IPC 12/2023 | 1,51621893 | ídem |
+| `movilidadEmpalme27426Dnu` | 2024-07 | 1 + 70 % var. IPC + 30 % var. RIPTE de 12/2023 a 4/2024 | 1,66273376 | `empalme_27426_dnu_70_30_julio_2024` (Galletta con empalme) |
+
+```bash
+node scripts/cargarMovilidadDerivada2024.js              # en seco: series, coeficientes y calibración
+node scripts/cargarMovilidadDerivada2024.js --apply
+node scripts/cargarMovilidadDerivada2024.js --revertir   # con --apply quita los dos campos
+```
+
+Antes de escribir calibra contra los coeficientes que resultan de las liquidaciones de BlueCorp del 23/11/2026
+(tolerancia 0,000001) y aborta si alguno difiere: una revisión del IPC o del RIPTE de esos meses se ve ahí. El cálculo
+está en `server/services/scrapers/previsional/movilidadDerivada2024.js` (test:
+`server/tests/unit/services/movilidadDerivada2024.test.js`). Corrido en seco el 23/11/2026: los tres calibran y los tres
+documentos están sin el dato; **falta el `--apply`**. Sin estos campos el hub avisa y no aplica el aumento.
+
 ## 7. Verificación y estado
 
 - **12/10/2026**: carga inicial con el sincronizador: corrida `datosprev-20261012-163843` (2024-04 → 2026-10, con

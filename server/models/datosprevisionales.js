@@ -84,6 +84,10 @@ let datosPrevSchema = new Schema({
     referenciaDiferencialMax: { type: Number },
     movilidadLey27426: { type: Number },
     movilidadIpcTrimRetrasado3m: { type: Number },
+    // Derivados de IPC y RIPTE para el empalme de 2024 (scripts/cargarMovilidadDerivada2024.js):
+    // empalme 70/30 de 12/2023 a 4/2024 (solo 2024-07) e IPC trimestral del criterio Aguirre (2024-03 y 2024-06)
+    movilidadEmpalme27426Dnu: { type: Number },
+    movilidadAguirreIpcTrimestral: { type: Number },
     movilidadAumentoMar2021: { type: Number },
     norma: { type: String },
     links: { type: [String] },
