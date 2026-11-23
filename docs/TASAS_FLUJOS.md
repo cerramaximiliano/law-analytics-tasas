@@ -217,3 +217,114 @@ Definidos en `server/config/cronConfig.js` y registrados en `server/services/tas
 | `server/config/cronConfig.js` | Expresiones cron centralizadas |
 | `server/services/tasks/taskService.js` | Registro de crons al iniciar el servidor |
 | `scripts/testCpacfValues.js` | Diagnóstico: verifica campos extraídos por CPACF por tasa |
+
+---
+
+## 10. Series mensuales — IndicesMensuales
+
+Agregado el 2026-11-23. Describe lo que ya hace el código; no cambia nada.
+
+Además de las tasas diarias de la colección `tasas`, el servicio mantiene series **mensuales** en la colección `indicesmensuales` (un documento por `serie` + `periodo` AAAA-MM).
+
+### 10.1. Series y fuentes
+
+| serie | fuente oficial | tipo | desde | documento en TasasConfig |
+|---|---|---|---|---|
+| `inflacionMensual` | API del BCRA, variable 27 (IPC INDEC) | `variacion` (% del mes) | 1943-03 | sí |
+| `ipc` | datos.gob.ar, serie `148.3_INIVELNAL_DICI_M_26` (INDEC, base dic-2016 = 100) | `nivel` | 2016-12 | sí |
+| `ripte` | **Secretaría de Trabajo**, `argentina.gob.ar/trabajo/seguridadsocial/ripte` (últimos ~21 meses, manda); histórico de datos.gob.ar, serie `158.1_REPTE_0_0_5` | `nivel` | 1994-07 | sí |
+| `smvm` | datos.gob.ar, serie `57.1_SMVMM_0_M_34` | `valor` | 1988 | no |
+| `haberMinimo` | datos.gob.ar, serie `58.1_MP_0_M_24` | `valor` | 1994-01 | no |
+| `isal`, `ingr`, `isbicC`, `isbicNC`, `remRes140`, `remRes135`, `remLey27260` | cargas históricas previsionales (haber de caja) | `nivel` | — | no |
+
+Las de tipo `valor` son montos vigentes (topes y pisos): la fuente publica solo los meses con cambio y los intermedios se rellenan con `rellenoDesde`. No se ofrecen como tasa y por eso no tienen documento de configuración.
+
+Código: `server/services/scrapers/tasas/indicesMensualesService.js` (`SERIES_MENSUALES`, `actualizarSerieMensual`, `actualizarTodas`).
+
+### 10.2. Configuración: períodos completos y faltantes
+
+Las series mensuales usables como tasa tienen su documento en `tasasconfigs`, igual que las diarias, con los campos que fija el catálogo `server/utils/tasasIndices.js` (`CATALOGO_TASAS`): `periodicidad: 'mensual'`, `coleccion: 'indicesmensuales'`, `fuente`, unidades, `atrasoPublicacionDias` (75; queda como respaldo) y `publicacion: { mesesDespues, dia }`, el calendario con el que se decide si la serie está al día (10.8).
+
+`verificarFechasFaltantes(tipoTasa)` detecta la periodicidad y deriva en `verificarPeriodosMensuales`, que recorre los períodos guardados y escribe:
+
+| campo | contenido |
+|---|---|
+| `fechaInicio` / `fechaUltima` | primer y último mes con dato |
+| `fechaUltimaCompleta` | último mes hasta el cual no falta ninguno |
+| `fechasFaltantes` | un `Date` por cada mes sin dato entre el primero y el último |
+| `ultimoPeriodo` | último mes publicado, `AAAA-MM` |
+| `ultimaVerificacion` | cuándo se computó |
+
+Se recalcula en cada actualización de la serie (`sincronizarConfig`).
+
+### 10.3. Actualización
+
+- **Cron** `indices-mensuales`: todos los días 10:10, 17:10 y 21:10 (`cronConfig.indicesMensuales.actualizacion`); la lectura de las 17:10 toma el IPC el mismo día en que el INDEC lo publica (16 h). Relee **los últimos 12 meses** de cada serie y hace upsert; los dos últimos meses del RIPTE se marcan `provisorio`.
+- **Carga histórica**: `node scripts/backfillIndicesMensuales.js [--dry-run] [--serie=<serie>]`, desde el `desde` de cada serie.
+
+### 10.4. Estado al 2026-11-23
+
+`tasasconfigs`: 23 series, todas con 0 faltantes. Mensuales: `inflacionMensual` 1943-03 → 2026-10 (1.004 meses), `ipc` 2016-12 → 2026-10 (119), `ripte` 1994-07 → 2026-08 (386, 2 provisorios). Sin huecos en ninguna de las 12 series de `indicesmensuales`.
+
+### 10.5. Por qué una serie puede no estar al día, y qué se hizo (2026-11-23)
+
+Dos causas, las dos encontradas ese día:
+
+**a) La fuente era una republicación.** El RIPTE se leía solo de datos.gob.ar, que copia la serie de la Secretaría de Trabajo con demora y sin control:
+
+| período | datos.gob.ar | página oficial |
+|---|---|---|
+| 2026-08 | 1.915.878,76 (repite el valor de junio) | 1.982.518,19 |
+| 2026-09 | no lo tiene | 2.022.244,09 |
+
+Corrección en el código (rama `fix/indices-fuente-oficial-ripte`): `leerRipteOficial()` lee la tabla de la página oficial y `superponerOficial()` la aplica sobre la serie de datos.gob.ar — los meses que publica la fuente oficial reemplazan o agregan, cada documento guarda de qué fuente salió, y las diferencias van al log como `warn`. Si la página oficial no responde o cambia de formato, el servicio sigue con datos.gob.ar. `atrasoPublicacionDias` del RIPTE pasa de 110 a 75. Test: `server/tests/unit/services/ripteOficial.test.js`, con la página guardada como fixture.
+
+**b) El cron relee 12 meses.** Si la fuente revisa un valor más viejo no se recoge, y la configuración sigue diciendo "0 faltantes" porque mide presencia, no exactitud:
+
+| serie | período | en `indicesmensuales` | en la fuente |
+|---|---|---|---|
+| `ipc` | 2019-04 | 212,9596414 | 213,0517 |
+| `ipc` | 2024-05 | 6073,7 | 6073,7165 |
+
+Corrección en el código: tarea nueva `indices-mensuales-relectura`, domingos 10:40, que llama `actualizarTodas({ completa: true })` y relee cada serie desde su inicio.
+
+**Hasta que se despliegue**, los valores de arriba siguen mal en Atlas. Corrección puntual, como root en el hub: `node scripts/backfillIndicesMensuales.js --serie=ipc` y `--serie=ripte`.
+
+Lo que **no** es un atraso: el IPC llega hasta el mes anterior al último cerrado (INDEC publica a mediados del mes siguiente) y las tasas diarias llegan hasta hoy o más allá.
+
+### 10.6. Agregar una serie mensual
+
+1. Entrada en `SERIES_MENSUALES` (`origen`, `id`, `tipo`, `tipoIndice`, `descripcion`, `fuente`, `desde`). Fuentes soportadas: `bcra` y `datosgob`; otra fuente necesita su lector.
+2. Si debe ofrecerse como tasa: entrada en `CATALOGO_TASAS` y en el `enum` de `tipoTasa` de `server/models/tasasConfig.js`. El documento de configuración se crea solo en la primera verificación.
+3. `node scripts/backfillIndicesMensuales.js --dry-run --serie=<serie>` y después sin `--dry-run`.
+4. Deploy: `git pull` en `/var/www/admin` y `pm2 restart law-analytics-tasas`.
+
+### 10.7. Movilidad previsional
+
+No está acá: los aumentos generales de ANSES y los factores de los criterios del retroactivo viven en `datosprevisionales` (ver `DATOS_PREVISIONALES.md`). `movilidadLey27426` —lo que habría dado la ley 27.426— estaba cargada solo para 2020; el 2026-11-23 se extendió de marzo de 2021 a junio de 2024 (catorce trimestres) con `scripts/cargarMovilidadLey27426.js`, que la calibra contra los ocho aumentos reales de 2018-2019 antes de escribir. Se calcula con `ipc` y `ripte` de esta colección (70 % de la variación del IPC más 30 % de la del RIPTE del trimestre cerrado seis meses antes).
+
+### 10.8. Al día por calendario, aviso por correo y seguimiento en tareas del admin
+
+**Cuándo una serie mensual está al día.** No por días de atraso sino por período: `publicacion: { mesesDespues, dia }` en el catálogo dice que el dato del mes M debe estar el día `dia` del mes M + `mesesDespues` (`server/utils/calendarioPublicacion.js`).
+
+| serie | regla | ejemplo |
+|---|---|---|
+| `ipc` | mes siguiente, día 18 | el IPC de octubre se espera desde el 18/11 |
+| `inflacionMensual` | mes siguiente, día 22 | el BCRA lo toma unos días después del INDEC |
+| `ripte` | segundo mes siguiente, día 20 | el RIPTE de septiembre se espera desde el 20/11 |
+
+Con el margen fijo anterior (75 o 110 días desde el fin del último mes) un atraso real tardaba semanas en verse: el 23/11/2026 el RIPTE estaba en agosto y figuraba "al día". Lo usan el reporte diario de tasas (`verificadorTasas`) y `GET /api/tasas/status` (`serieAlDia`).
+
+**Correo.** Dos avisos distintos:
+
+- *Llegó un dato* — `avisoIndices.js`, desde el cron `indices-mensuales`: sale solo cuando una serie con calendario trae un mes nuevo o la fuente corrigió un mes ya cargado. Dice el valor, la variación mensual, la fuente y cuándo se espera el próximo. Destinatario: `EMAIL_ADMIN_INDICES` (por defecto el mismo de los avisos arancelarios). `INDICES_DRY_EMAIL=1` lo loguea sin enviarlo.
+- *Falta un dato* — el reporte diario de tasas ya existente: una serie mensual que no llegó al período esperado figura como desactualizada, con "último mes X, esperado Y".
+
+**Tareas del admin** (`server/services/seguimiento/seguimientoIndices.js`, colección `admintasks`, vista `/admin/tasks`, proyecto `tasas`). Una tarea por serie, que se reutiliza (se ubica por `metadata.seguimientoIndice`):
+
+- `ipc`, `ripte`, `inflacionMensual`: vence el día en que se espera el mes siguiente. Cuando el cron lo lee, anota el valor como comentario y corre el vencimiento un mes. Si el mes no llega, la tarea queda vencida y pasa a prioridad alta.
+- `tasas-diarias`: una sola para todas las series diarias; vence al día siguiente y la verificación de tasas la renueva mientras estén todas al día. Con alguna atrasada no se renueva y la descripción lista cuáles.
+
+Un vencimiento nuevo abre un ciclo: la tarea vuelve a "por hacer" aunque se la haya cerrado a mano. Archivarla no la detiene (se sigue actualizando archivada); para dejar de seguir una serie hay que quitarle `publicacion` del catálogo.
+
+Tests: `server/tests/unit/services/seguimientoIndices.test.js`.

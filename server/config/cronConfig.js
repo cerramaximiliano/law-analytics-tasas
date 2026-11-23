@@ -60,8 +60,14 @@ const cronConfig = {
 
     // Series mensuales (inflación BCRA, RIPTE, IPC, SMVM, haber mínimo) → IndicesMensuales.
     // Una vez por día alcanza: se publican una vez por mes y se releen los últimos 12 meses.
+    // Los domingos, además, relectura completa desde el inicio de cada serie: recoge las
+    // revisiones de la fuente sobre meses viejos (el 23/11/2026 el IPC tenía dos valores
+    // desactualizados, 4/2019 y 5/2024, que la relectura de 12 meses no alcanzaba).
     indicesMensuales: {
-        actualizacion: '10 10 * * *'
+        // Tres lecturas por día: a la mañana, después de la publicación del INDEC (16 h) y a la
+        // noche. El correo sale solo cuando hay un mes nuevo o corregido.
+        actualizacion: '10 10,17,21 * * *',
+        relecturaCompleta: '40 10 * * 0'
     },
 
     // Configuración de horarios para tareas Colegio

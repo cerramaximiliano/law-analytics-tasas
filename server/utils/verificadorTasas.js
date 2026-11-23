@@ -2,6 +2,8 @@ const moment = require('moment');
 const { sendEmail } = require('../services/aws_ses/aws_sesService');
 const logger = require('./logger');
 const TasasConfig = require('../models/tasasConfig');
+const { CATALOGO_TASAS } = require('./tasasIndices');
+const { mensualAlDia, periodoEsperado } = require('./calendarioPublicacion');
 const { obtenerEstadoDatosPrevisionales, htmlEstado, textoEstado } = require('../services/audit/estadoDatosPrevisionales');
 
 /**
@@ -84,21 +86,28 @@ async function verificarTasasActualizadas(options = {}) {
             // 1. Su fecha de última actualización es hoy (mismo día), O
             // 2. Su fecha de última actualización es futura (días negativos)
             // 3. Está dentro del atraso normal de publicación de su fuente
-            const estaActualizada =
-                moment(fechaUltima).isSameOrAfter(fechaActual, 'day') ||
-                diasDesde < 0 || // Fecha futura
-                diasDesde <= (config.atrasoPublicacionDias || 0); // atraso normal de la fuente (TasasConfig)
+            // Las series mensuales con calendario de publicación (IPC, RIPTE, inflación) se miden
+            // por período: están al día si ya tienen el mes que la fuente debería haber publicado.
+            const regla = CATALOGO_TASAS[config.tipoTasa] && CATALOGO_TASAS[config.tipoTasa].publicacion;
+            const estaActualizada = regla && config.ultimoPeriodo
+                ? mensualAlDia(regla, config.ultimoPeriodo, fechaActual)
+                : moment(fechaUltima).isSameOrAfter(fechaActual, 'day') ||
+                  diasDesde < 0 || // Fecha futura
+                  diasDesde <= (config.atrasoPublicacionDias || 0); // atraso normal de la fuente (TasasConfig)
 
             // Guardar resultado con información adicional
             const estadoTasa = {
                 tipoTasa: config.tipoTasa,
-                descripcion: config.descripcion || config.tipoTasa,
+                descripcion: (config.descripcion || config.tipoTasa) + (regla && config.ultimoPeriodo ? ` — último mes ${config.ultimoPeriodo}, esperado ${periodoEsperado(regla, fechaActual)}` : ''),
                 fechaUltima: fechaUltima,
                 estaActualizada,
                 diasDesdeUltimaActualizacion: diasDesde,
                 esFechaFutura: diasDesde < 0,
                 ultimaVerificacion: config.ultimaVerificacion,
-                activa: config.activa
+                activa: config.activa,
+                periodicidad: config.periodicidad || 'diaria',
+                ultimoPeriodo: config.ultimoPeriodo,
+                periodoEsperado: regla ? periodoEsperado(regla, fechaActual) : undefined
             };
 
             resultado.push(estadoTasa);
@@ -141,6 +150,9 @@ async function verificarTasasActualizadas(options = {}) {
             logger.error(`Error al leer el estado de datosprevisionales: ${e.message}`);
             previsional = { nivel: 'error', mensaje: e.message, titular: 'estado previsional no disponible' };
         }
+
+        // Tarea de seguimiento de las tasas diarias en el admin: se renueva si están todas al día
+        await require('../services/seguimiento/seguimientoIndices').seguirTasasDiarias({ resultado });
 
         // Enviar email según la configuración
         if (enviarEmail && emailDestinatario) {
