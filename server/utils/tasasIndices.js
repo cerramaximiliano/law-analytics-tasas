@@ -95,10 +95,10 @@ const CATALOGO_TASAS = {
   },
   ipc: {
     tipoIndice: 'indiceMensual', periodicidad: 'mensual', coleccion: 'indicesmensuales',
-    descripcion: 'IPC INDEC (nivel general)', fuente: 'datos.gob.ar, serie 148.3_INIVELNAL_DICI_M_26',
+    descripcion: 'IPC INDEC (nivel general)', fuente: 'INDEC (Catálogo API-INDEC, ipc_nacional); respaldo datos.gob.ar, serie 148.3_INIVELNAL_DICI_M_26',
     unidadOrigen: 'Índice base dic-2016 = 100', unidadAlmacenada: 'Nivel del mes',
     atrasoPublicacionDias: 75,
-    // El INDEC publica el IPC entre el 10 y el 16 del mes siguiente; datos.gob.ar lo toma en el día.
+    // El INDEC publica el IPC entre el 10 y el 16 del mes siguiente (se lee de su API; datos.gob.ar lo toma en el día).
     publicacion: { mesesDespues: 1, dia: 18 },
   },
 };
