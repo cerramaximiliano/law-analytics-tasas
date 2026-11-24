@@ -5,6 +5,8 @@
  * Fuentes:
  *  - BCRA API v4: inflación mensual (variable 27, IPC INDEC), fecha = último día del mes.
  *  - datos.gob.ar (apis.datos.gob.ar/series): RIPTE, IPC nivel, SMVM, haber mínimo.
+ *  - Fuentes primarias que mandan sobre la republicación de datos.gob.ar (`oficial`): la página
+ *    de la Secretaría de Trabajo para el RIPTE y el Catálogo API-INDEC para el IPC.
  *
  * Las series usables como tasa en un tramo (variacionMensual, indiceMensual) también tienen
  * TasasConfig, para que el hub las liste y elija la fórmula. Las de 'valor' (SMVM, haber
@@ -36,6 +38,9 @@ const SERIES_MENSUALES = {
 		origen: 'datosgob', id: '148.3_INIVELNAL_DICI_M_26', tipo: 'nivel', tipoIndice: 'indiceMensual',
 		descripcion: 'IPC nacional nivel general (INDEC, base dic-2016 = 100)',
 		fuente: 'datos.gob.ar 148.3_INIVELNAL_DICI_M_26', desde: '2016-12-01',
+		// El INDEC publica la serie en su propia API (beta desde 11/2026, con token): manda sobre
+		// la republicación. Sin token o si la API falla, se sigue con datos.gob.ar.
+		oficial: 'ipcIndec',
 	},
 	smvm: {
 		origen: 'datosgob', id: '57.1_SMVMM_0_M_34', tipo: 'valor', tipoIndice: 'valorMensual',
@@ -139,6 +144,44 @@ async function leerRipteOficial() {
 	return datos;
 }
 
+const IPC_INDEC_URL = 'https://api.indec.gob.ar/v1/ipc_nacional';
+const FUENTE_IPC_INDEC = 'INDEC, Catálogo API-INDEC (api.indec.gob.ar, ipc_nacional)';
+
+/**
+ * Filas del servicio `ipc_nacional` (nivel general, región Nacional, tipo Indice): período
+ * "AAAAMM" y valor base dic-2016 = 100. Función pura. Descarta filas sin valor (el INDEC marca
+ * con `valor_null` los datos no disponibles).
+ * @returns {Array<{periodo:string, valor:number}>}
+ */
+function parsearIpcIndec(filas) {
+	if (!Array.isArray(filas)) return [];
+	return filas
+		.filter((f) => f && /^\d{6}$/.test(String(f.periodo)) && f.valor !== null && f.valor !== undefined && Number.isFinite(Number(f.valor)) && Number(f.valor) > 0)
+		.map((f) => ({ periodo: `${String(f.periodo).slice(0, 4)}-${String(f.periodo).slice(4)}`, valor: Number(f.valor) }))
+		.sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
+}
+
+/** @returns {Array<{periodo:string, valor:number}>} IPC nacional nivel general desde `desde` (YYYY-MM-DD) */
+async function leerIpcIndec(desde) {
+	const token = process.env.INDEC_API_KEY;
+	if (!token) throw new Error('falta INDEC_API_KEY');
+	const params = {
+		nivel: 'eq.Nivel General', region: 'eq.Nacional', tipo_de_indicador: 'eq.Indice',
+		periodo: `gte.${desde.slice(0, 7).replace('-', '')}`,
+		select: 'periodo,valor', order: 'periodo.asc', limit: 1000, // la serie completa son ~120 filas
+	};
+	const resp = await conReintentos(() => axios.get(IPC_INDEC_URL, { params, headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, timeout: 30000 }));
+	const datos = parsearIpcIndec(resp.data);
+	if (!datos.length) throw new Error('la API del INDEC no devolvió filas del IPC nivel general');
+	return datos;
+}
+
+// Fuentes primarias por clave de `oficial`: lector (recibe `desde`) y etiqueta de fuente.
+const FUENTES_OFICIALES = {
+	ripteTrabajo: { leer: async (desde) => (await leerRipteOficial()).filter((d) => d.periodo >= desde.slice(0, 7)), fuente: FUENTE_RIPTE_OFICIAL },
+	ipcIndec: { leer: leerIpcIndec, fuente: FUENTE_IPC_INDEC },
+};
+
 /**
  * Superpone lo que publica la fuente oficial primaria sobre la serie republicada: los meses de
  * la fuente oficial reemplazan o agregan. Devuelve además las diferencias, para el log.
@@ -199,9 +242,10 @@ async function actualizarSerieMensual(serie, opciones = {}) {
 			? await leerBCRA(cfg.id, desde, hoy.format('YYYY-MM-DD'))
 			: await leerDatosGob(cfg.id, desde);
 		let validos = datos.filter((d) => /^\d{4}-\d{2}$/.test(d.periodo) && Number.isFinite(d.valor)).sort((a, b) => (a.periodo < b.periodo ? -1 : 1));
-		if (cfg.oficial === 'ripteTrabajo') {
+		const oficial = cfg.oficial && FUENTES_OFICIALES[cfg.oficial];
+		if (oficial) {
 			try {
-				const r = superponerOficial(validos, (await leerRipteOficial()).filter((d) => d.periodo >= desde.slice(0, 7)), FUENTE_RIPTE_OFICIAL);
+				const r = superponerOficial(validos, await oficial.leer(desde), oficial.fuente);
 				validos = r.datos;
 				for (const x of r.diferencias) logger.warn(`${serie} ${x.periodo}: la fuente oficial da ${x.oficial} y datos.gob.ar ${x.republicada === null ? 'no lo tiene' : x.republicada}; se guarda el oficial`);
 			} catch (e) {
@@ -276,4 +320,4 @@ async function actualizarTodas(opciones = {}) {
 	return resultados;
 }
 
-module.exports = { SERIES_MENSUALES, actualizarSerieMensual, actualizarTodas, leerBCRA, leerDatosGob, completarValoresVigentes, parsearTablaRipte, leerRipteOficial, superponerOficial, detectarNovedades };
+module.exports = { SERIES_MENSUALES, actualizarSerieMensual, actualizarTodas, leerBCRA, leerDatosGob, completarValoresVigentes, parsearTablaRipte, leerRipteOficial, parsearIpcIndec, leerIpcIndec, superponerOficial, detectarNovedades };
