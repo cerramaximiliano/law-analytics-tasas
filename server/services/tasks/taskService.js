@@ -660,7 +660,7 @@ function initializeTasks() {
     taskId: 'verificacion-tasas-matutina',
     soloTasasActivas: true,
     enviarEmail: true,
-    notificarExito: true, // Enviar email incluso cuando todo está bien
+    notificarExito: true, // Reporte diario: sale siempre, con problemas o sin ellos
     emailDestinatario: "cerramaximiliano@gmail.com"
   });
 
@@ -670,7 +670,7 @@ function initializeTasks() {
     taskId: 'verificacion-tasas-ciclica',
     soloTasasActivas: true,
     enviarEmail: true,
-    notificarExito: false, // No notificar éxito en las verificaciones cíclicas (sería demasiado frecuente)
+    notificarExito: false, // Avisa cuando un problema aparece, cambia o se resuelve
     emailDestinatario: "cerramaximiliano@gmail.com"
   });
 
@@ -680,7 +680,7 @@ function initializeTasks() {
     taskId: 'verificacion-tasas-diaria',
     soloTasasActivas: false, // Verificar todas las tasas, incluso las inactivas
     enviarEmail: true,
-    notificarExito: true, // Enviar email incluso cuando todo está bien
+    notificarExito: false, // El reporte diario es el de la matutina; esta avisa solo si algo cambió
     emailDestinatario: "cerramaximiliano@gmail.com"
   });
 

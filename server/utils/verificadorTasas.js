@@ -4,6 +4,7 @@ const logger = require('./logger');
 const TasasConfig = require('../models/tasasConfig');
 const { CATALOGO_TASAS } = require('./tasasIndices');
 const { mensualAlDia, periodoEsperado } = require('./calendarioPublicacion');
+const { firmaProblema, erroresRelevantes, decidirEnvio, obtenerFirmaInformada, registrarFirmaInformada } = require('./politicaAlertas');
 const { obtenerEstadoDatosPrevisionales, htmlEstado, textoEstado } = require('../services/audit/estadoDatosPrevisionales');
 const { obtenerEstadoIndicesMensuales, htmlEstadoIndices, textoEstadoIndices } = require('../services/audit/estadoIndicesMensuales');
 
@@ -11,11 +12,12 @@ const { obtenerEstadoIndicesMensuales, htmlEstadoIndices, textoEstadoIndices } =
  * Asunto del reporte: cubre tasas y datos previsionales. [ALERTA] si hay tasas desactualizadas, errores de scraping o
  * un problema en los datos previsionales (mes en curso sin datos, cron parado, normas que no se leen); [AVISO] si
  * solo falta algo menor del mes en curso (salario mínimo, decreto del bono); [OK] si todo está al día.
+ * `resuelto` marca el correo que cierra una alerta anterior ("tasas nuevamente al día").
  */
-function asuntoReporte({ desactualizadas = 0, conErrores = 0, previsional, indices, fechaActual }) {
+function asuntoReporte({ desactualizadas = 0, conErrores = 0, previsional, indices, fechaActual, resuelto = false }) {
     const nivelPrev = previsional ? previsional.nivel : 'error';
     const prefijo = desactualizadas || conErrores || nivelPrev === 'alerta' || nivelPrev === 'error' ? '[ALERTA]' : nivelPrev === 'aviso' ? '[AVISO]' : '[OK]';
-    const partes = [desactualizadas ? `${desactualizadas} tasas desactualizadas` : 'tasas al día'];
+    const partes = [desactualizadas ? `${desactualizadas} tasas desactualizadas` : resuelto ? 'tasas nuevamente al día' : 'tasas al día'];
     if (conErrores) partes.push(`${conErrores} con errores de scraping`);
     partes.push(previsional && previsional.titular ? previsional.titular : 'estado previsional no disponible');
     // Índices mensuales: solo si llegó o se corrigió un mes en las últimas 24 h (el atraso ya cuenta como tasa desactualizada)
@@ -165,24 +167,22 @@ async function verificarTasasActualizadas(options = {}) {
         // Tarea de seguimiento de las tasas diarias en el admin: se renueva si están todas al día
         await require('../services/seguimiento/seguimientoIndices').seguirTasasDiarias({ resultado });
 
-        // Enviar email según la configuración
+        // Enviar email según la política de alertas: el reporte diario sale siempre; las demás corridas
+        // avisan cuando el problema aparece, cambia o se resuelve (ver politicaAlertas.js).
+        // Los errores de scraping se informan solo de las tasas que además quedaron desactualizadas.
+        const erroresAInformar = erroresRelevantes(tasasConErrores, tasasDesactualizadas);
         if (enviarEmail && emailDestinatario) {
-            const hayErroresScraping = tasasConErrores.length > 0;
-            
-            // Determinar si se debe enviar email basado en configuración y estado
-            const debeEnviarEmail = !todasActualizadas || 
-                                  (todasActualizadas && notificarExito) || 
-                                  (hayErroresScraping && notificarErrores);
-            
-            if (debeEnviarEmail) {
-                if (todasActualizadas && !hayErroresScraping) {
-                    // Todo está bien - enviar email de éxito
-                    await enviarEmailExito(emailDestinatario, resultado, fechaActual, previsional, indices);
-                } else if (!todasActualizadas || hayErroresScraping) {
-                    // Hay tasas desactualizadas o errores de scraping - enviar alerta
-                    await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, tasasConErrores, previsional, indices);
-                }
+            const firma = firmaProblema(tasasDesactualizadas);
+            const envio = decidirEnvio({ firma, firmaPrevia: obtenerFirmaInformada(), notificarExito });
+            let enviado = false;
+            if (envio === 'alerta') {
+                enviado = await enviarEmailAlerta(emailDestinatario, tasasDesactualizadas, resultado, fechaActual, erroresAInformar, previsional, indices);
+            } else if (envio === 'exito' || envio === 'resuelto') {
+                enviado = await enviarEmailExito(emailDestinatario, resultado, fechaActual, previsional, indices, { resuelto: envio === 'resuelto' });
+            } else {
+                logger.info(firma ? `Sin correo: el problema ya fue informado (${firma})` : 'Sin correo: todo al día');
             }
+            if (enviado) registrarFirmaInformada(firma);
         }
 
         // Registrar resultado en logs
@@ -483,7 +483,7 @@ async function enviarEmailAlerta(destinatario, tasasDesactualizadas, todasLasTas
  * @param {Array} tasas - Lista completa de tasas
  * @param {Date} fechaActual - Fecha actual de la verificación
  */
-async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = null, indices = null) {
+async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = null, indices = null, { resuelto = false } = {}) {
     try {
         // Crear resumen de todas las tasas
         let tablaTasas = `
@@ -564,7 +564,7 @@ async function enviarEmailExito(destinatario, tasas, fechaActual, previsional = 
         tablaFechasFaltantes += '</table>';
 
         // Contenido del email
-        const asunto = asuntoReporte({ previsional, indices, fechaActual });
+        const asunto = asuntoReporte({ previsional, indices, fechaActual, resuelto });
         const htmlBody = `
         <html>
         <head>
