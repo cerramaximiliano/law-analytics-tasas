@@ -130,10 +130,12 @@ const cronConfig = {
         matutina: '0 9 * * *',     // A las 9:00 AM, después de todas las tareas de la mañana
 
         // Verificación después de cada ciclo de actualización
-        ciclica: '55 7,9,11,13,15,21 * * *',  // 5 minutos después del último scraping del ciclo
+        // Sin la corrida de las 7:55: las tasas del CPACF (Banco Provincia, pasiva BNA) se bajan desde
+        // las 8:03 y esa corrida las daba por desactualizadas todos los días. La matutina cubre la mañana.
+        ciclica: '55 9,11,13,15,21 * * *',  // 5 minutos después del último scraping del ciclo
 
         // Verificación diaria completa
-        diaria: '0 23 * * *'      // A las 11:00 PM, reporte diario completo
+        diaria: '0 23 * * *'      // A las 11:00 PM, control de cierre del día (avisa solo si hay novedades)
     },
 
     syncStats: {
